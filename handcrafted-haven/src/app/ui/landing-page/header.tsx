@@ -53,7 +53,7 @@ export default function Header() {
       />
       <Search placeholder="Search anything..." className="w-full max-w-1/2" />
       <Link
-        href="/login"
+        href="/login" 
         className="font-bold bg-gray-100 p-2 rounded-2xl text-center"
       >
         Sign In
