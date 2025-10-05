@@ -1,0 +1,61 @@
+// prisma/schema.prisma
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String   @id @default(cuid())
+  name          String
+  email         String   @unique
+  password      String
+  role          Role     @default(CUSTOMER)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  sellerProfile  Seller?
+  customerProfile Customer?
+}
+
+model Seller {
+  id          String   @id @default(cuid())
+  shopName    String
+  bio         String?
+  logo        String?
+  banner      String?
+  user        User     @relation(fields: [userId], references: [id])
+  userId      String   @unique
+  products    Product[]
+  createdAt   DateTime @default(now())
+}
+
+model Customer {
+  id        String   @id @default(cuid())
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String   @unique
+  address   String?
+  createdAt DateTime @default(now())
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  name        String
+  price       Float
+  description String?
+  image       String?
+  category    String?
+  seller      Seller   @relation(fields: [sellerId], references: [id])
+  sellerId    String
+  createdAt   DateTime @default(now())
+}
+
+enum Role {
+  CUSTOMER
+  SELLER
+  ADMIN
+}

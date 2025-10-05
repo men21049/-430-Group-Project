@@ -6,7 +6,6 @@ import AuthHeader from "@/app/ui/auth-header";
 export default function SignUpPage() {
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-[#fef5ef] p-6">
-      {/* Logo + Welcome */}
       <AuthHeader
         title="Create an Account"
         subtitle="Join Handcrafted Haven to discover and sell handmade treasures"
@@ -25,8 +24,10 @@ export default function SignUpPage() {
         >
           Sign up as Seller
         </Link>
+        <Link href="/login" className="block text-center mt-4 text-[#9d5c63] hover:underline">
+          ← Already have an account? Login
+        </Link>
       </div>
     </div>
   );
 }
-        
