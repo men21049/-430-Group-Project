@@ -38,16 +38,18 @@ export default function SignupForm({ role }: SignupProps) {
       } else {
         setMessage("✅ Signup successful! Logging in...");
 
-        // Auto-login: save token and role
-        Cookies.set("token", data.token || "dummy-token", { expires: 1 });
-        Cookies.set("role", role);
+        // Save token, role and userId
+        if (data.token) Cookies.set("token", data.token, { expires: 1 });
+        if (data.role) Cookies.set("role", data.role);
+        if (data.userId) Cookies.set("userId", data.userId);
         Cookies.set("name", name);
 
         // Redirect based on role
-        if (role === "SELLER") router.push("/signup/seller"); // seller dashboard page
-        else router.push("/signup/customer"); // customer dashboard page
+        if (role === "SELLER") router.push("/seller/dashboard");
+        else router.push("/customer/dashboard");
       }
     } catch (err) {
+      console.error("SignupForm error:", err);
       setMessage("⚠️ Network or server error");
     } finally {
       setLoading(false);
@@ -84,7 +86,7 @@ export default function SignupForm({ role }: SignupProps) {
         placeholder="Password"
       />
 
-      {/* Seller fields */}
+      {/* Seller extra fields */}
       {role === "SELLER" && (
         <>
           <input

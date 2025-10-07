@@ -13,7 +13,7 @@ export default function SignUpCustomerPage() {
   const [message, setMessage] = useState("");
   const router = useRouter();
 
-  // ✅ Redirect if already logged in
+  // Redirect if already logged in
   useEffect(() => {
     const token = Cookies.get("token");
     const role = Cookies.get("role");
@@ -39,16 +39,23 @@ export default function SignUpCustomerPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...form, role: "CUSTOMER" }),
       });
+
       const data = await res.json();
 
       if (!res.ok) {
         setMessage(data.error || "Signup failed");
       } else {
+        // Save JWT and user info in cookies
+        Cookies.set("token", data.token, { expires: 1 });
+        Cookies.set("role", data.role);
+        if (data.userId) Cookies.set("userId", data.userId);
+        Cookies.set("name", data.name || form.name);
+
         setMessage("✅ Account created! Redirecting...");
-        // Optional: redirect after signup
         router.push("/customer/dashboard");
       }
     } catch (err) {
+      console.error("Signup (customer) error:", err);
       setMessage("⚠️ Network or server error");
     } finally {
       setLoading(false);

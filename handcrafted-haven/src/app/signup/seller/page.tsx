@@ -13,7 +13,7 @@ export default function SignUpSellerPage() {
   const [message, setMessage] = useState("");
   const router = useRouter();
 
-  // ✅ Redirect if already logged in
+  // Redirect if already logged in
   useEffect(() => {
     const token = Cookies.get("token");
     const role = Cookies.get("role");
@@ -39,16 +39,23 @@ export default function SignUpSellerPage() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ...form, role: "SELLER" }),
       });
+
       const data = await res.json();
 
       if (!res.ok) {
         setMessage(data.error || "Signup failed");
       } else {
+        // Save JWT and user info in cookies
+        Cookies.set("token", data.token, { expires: 1 });
+        Cookies.set("role", data.role);
+        if (data.userId) Cookies.set("userId", data.userId);
+        Cookies.set("name", data.name || form.name);
+
         setMessage("✅ Seller account created! Redirecting...");
-        // Optional: redirect after signup
         router.push("/seller/dashboard");
       }
     } catch (err) {
+      console.error("Signup (seller) error:", err);
       setMessage("⚠️ Network or server error");
     } finally {
       setLoading(false);

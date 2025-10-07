@@ -3,7 +3,7 @@ interface ProductCardProps {
     id: string;
     name: string;
     price: number;
-    image: string;
+    image?: string;
   };
 }
 
@@ -11,7 +11,7 @@ export default function ProductCard({ product }: ProductCardProps) {
   return (
     <div className="border rounded-lg overflow-hidden shadow hover:shadow-lg transition cursor-pointer">
       <img
-        src={product.image}
+        src={product.image || "/artisans/amin-ybW2t0bEqm0-unsplash.jpg"} // fallback
         alt={product.name}
         className="w-full h-48 object-cover"
       />

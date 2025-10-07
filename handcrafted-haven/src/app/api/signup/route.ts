@@ -1,14 +1,16 @@
+// src/app/api/signup/route.ts
 import { NextResponse } from "next/server";
-import { PrismaClient } from "@prisma/client";
+import prisma from "@/prisma/client";
 import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
 
-const prisma = new PrismaClient();
+const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 
 export async function POST(req: Request) {
   try {
     const { name, email, password, role, shopName, bio } = await req.json();
 
-    if (!name || !email || !password) {
+    if (!name || !email || !password || !role) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
 
@@ -31,7 +33,7 @@ export async function POST(req: Request) {
       },
     });
 
-    // If seller, create seller profile
+    // Create profile
     if (role === "SELLER") {
       await prisma.seller.create({
         data: {
@@ -40,18 +42,32 @@ export async function POST(req: Request) {
           userId: user.id,
         },
       });
-    }
-
-    // If customer, create customer profile
-    if (role === "CUSTOMER") {
+    } else if (role === "CUSTOMER") {
       await prisma.customer.create({
-        data: {
-          userId: user.id,
-        },
+        data: { userId: user.id },
       });
     }
 
-    return NextResponse.json({ message: "User created successfully", user }, { status: 201 });
+    // Build JWT payload
+    const payload = {
+      userId: user.id,
+      role: user.role,
+      name: user.name,
+      email: user.email,
+    };
+
+    const token = jwt.sign(payload, JWT_SECRET, { expiresIn: "1d" });
+
+    return NextResponse.json(
+      {
+        message: "Signup successful",
+        token,
+        role: user.role,
+        userId: user.id,
+        name: user.name,
+      },
+      { status: 201 }
+    );
   } catch (error) {
     console.error("Signup error:", error);
     return NextResponse.json({ error: "Server error" }, { status: 500 });

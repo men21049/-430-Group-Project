@@ -1,6 +1,7 @@
 import Header from '@/app/ui/landing-page/header';
 import Footer from '@/app/ui/footer';
 import Link from 'next/link';
+import CallToAction from '@/app/ui/landing-page/cta-section';
 
 export default function SellerDashboard() {
   return (
@@ -19,6 +20,7 @@ export default function SellerDashboard() {
           </Link>
         </div>
       </div>
+      <CallToAction />
       <Footer />
     </div>
   );

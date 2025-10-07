@@ -1,6 +1,15 @@
+"use client";
+
 import Image from "next/image";
+import { useRouter } from "next/navigation";
 
 export default function Hero() {
+  const router = useRouter();
+
+  const handleShopNow = () => {
+    router.push("/products"); // 👉 change this route if needed
+  };
+
   return (
     <div
       id="hero"
@@ -25,7 +34,8 @@ export default function Hero() {
         </h2>
         <button
           type="button"
-          className="bg-white text-black py-2 px-4 rounded-md cursor-pointer"
+          onClick={handleShopNow}
+          className="bg-white text-black py-2 px-4 rounded-md cursor-pointer transition-all duration-300 transform hover:bg-[#FF8C42] hover:text-white hover:scale-105 active:scale-95"
         >
           Shop now
         </button>

@@ -1,5 +1,3 @@
-// prisma/schema.prisma
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -10,28 +8,32 @@ datasource db {
 }
 
 model User {
-  id            String   @id @default(cuid())
-  name          String
-  email         String   @unique
-  password      String
-  role          Role     @default(CUSTOMER)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  id             String   @id @default(cuid())
+  name           String
+  email          String   @unique
+  password       String
+  role           Role     @default(CUSTOMER)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
 
-  sellerProfile  Seller?
+  sellerProfile   Seller?
   customerProfile Customer?
+
+  @@map("user") // maps to lowercase PostgreSQL table
 }
 
 model Seller {
-  id          String   @id @default(cuid())
-  shopName    String
-  bio         String?
-  logo        String?
-  banner      String?
-  user        User     @relation(fields: [userId], references: [id])
-  userId      String   @unique
-  products    Product[]
-  createdAt   DateTime @default(now())
+  id        String   @id @default(cuid())
+  shopName  String
+  bio       String?
+  logo      String?
+  banner    String?
+  user      User     @relation(fields: [userId], references: [id])
+  userId    String   @unique
+  products  Product[]
+  createdAt DateTime @default(now())
+
+  @@map("seller")
 }
 
 model Customer {
@@ -40,6 +42,8 @@ model Customer {
   userId    String   @unique
   address   String?
   createdAt DateTime @default(now())
+
+  @@map("customer")
 }
 
 model Product {
@@ -52,6 +56,8 @@ model Product {
   seller      Seller   @relation(fields: [sellerId], references: [id])
   sellerId    String
   createdAt   DateTime @default(now())
+
+  @@map("product")
 }
 
 enum Role {

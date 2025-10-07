@@ -55,7 +55,7 @@ export default function NavLinks() {
   const sellerLinks: NavLink[] = [
     { name: "Home", href: "/", icon: HomeIcon },
     { name: "My Shop", href: "/seller/dashboard", icon: UserIcon },
-    { name: "Add Product", href: "/seller/add-product", icon: PlusCircleIcon },
+    { name: "Add Product", href: "/seller/products/add", icon: PlusCircleIcon },
     { name: "Logout", onClick: handleLogout },
   ];
 
