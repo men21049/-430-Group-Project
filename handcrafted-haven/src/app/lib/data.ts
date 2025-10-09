@@ -1,4 +1,5 @@
 import { Product } from "./definitions";
+import connectDB from "./database";
 
 // Example static sellers data
 const allSellers = [
@@ -102,4 +103,15 @@ export async function getFakeProducts() {
     console.error("Error fetching data:", error);
     throw new Error("Failed to fetch data");
   }
+}
+
+export async function getProductsFromDB() {
+    try {
+        const db = connectDB;
+        const products = await db<Product[]>`SELECT * FROM products;`;
+        return products;
+    } catch (error) {
+        console.error("Error fetching data from database:", error);
+        throw new Error("Failed to fetch data from database");
+    }
 }

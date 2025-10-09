@@ -1,14 +1,12 @@
 export type Product = {
-    id: number
-    name: string
-    price: number
-    category: string[]
-    description: string
+    product_id: number
+    product_name: string,
+    price: number,
+    cost:number,
+    stock:number, 
+    description: string,
+    seller_id: number,
+    category: string,
     image: string
-    sellerId: string
-    active: boolean
-    rating: {
-        rate: number
-        count: number
     }
-}
+
