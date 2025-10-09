@@ -7,6 +7,8 @@ const allSellers = [
   // Add more sellers as needed
 ];
 
+//Fecthing the results and then filtering, is not usually a good practice since it affects performance. Instead, fetch the data using sql filtering. But for testing is fine.
+
 // Helper to get seller name by ID
 export function getSellerName(sellerId: string) {
   return allSellers.find(s => s.id === sellerId)?.name || "Unknown Seller";
@@ -18,38 +20,63 @@ export async function getSellerInfo(sellerId: string) {
 }
 
 // Get all products for a specific seller
-export async function getSellerProducts(sellerId: string) {
+export async function getAllSellerProducts(sellerId: string) {
   return allProducts.filter(p => p.sellerId === sellerId);
+}
+
+// Get a specific product by ID
+export async function getProductById(productId: number) {
+  return allProducts.find(p => p.id === productId);
+}
+
+// Get all active products for a specific seller
+export async function getSellerProducts(sellerId: string) {
+  return allProducts.filter(p => p.sellerId === sellerId && p.active);
 }
 
 // Global product list
 const allProducts: Product[] = [
   {
-    id: "1",
+    id: 1,
     name: "Handmade Necklace",
-    price: 25,
+    price: 24.95,
     image: "/products/necklace.jpg",
     sellerId: "seller1",
-    category: "Jewellery",
-    description: "Beautiful handcrafted necklace."
+    category: ["Jewellery"],
+    description: "Beautiful handcrafted necklace.",
+    active: true,
+    rating: {
+      rate: 4.5,
+      count: 10
+    }
   },
   {
-    id: "2",
+    id: 2,
     name: "Wooden Bowl",
-    price: 40,
+    price: 40.00,
     image: "/products/bowl.jpg",
     sellerId: "seller2",
-    category: "Home",
-    description: "Hand-carved wooden bowl."
+    category: ["Home"],
+    description: "Hand-carved wooden bowl.",
+    active: true,
+    rating: {
+      rate: 4.2,
+      count: 8
+    }
   },
   {
-    id: "3",
+    id: 3,
     name: "Painted Canvas",
-    price: 100,
+    price: 99.99,
     image: "/products/canvas.jpg",
     sellerId: "seller1",
-    category: "Art",
-    description: "Original painted canvas."
+    category: ["Art"],
+    description: "Original painted canvas.",
+    active: true,
+    rating: {
+      rate: 4.8,
+      count: 12
+    }
   },
   // Add more products as needed
 ];
@@ -58,7 +85,7 @@ const allProducts: Product[] = [
 export async function searchProducts(query: string) {
   const q = query.toLowerCase();
   return allProducts.filter(
-    p => p.name.toLowerCase().includes(q) || (p.category?.toLowerCase().includes(q))
+    p => p.name.toLowerCase().includes(q) || (p.category?.map(c => c.toLowerCase()).includes(q) || p.description?.toLowerCase().includes(q)) //this works with category array and description.
   );
 }
 

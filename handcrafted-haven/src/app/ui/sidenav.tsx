@@ -17,8 +17,8 @@ export default function NavigationBar() {
   return (
     <div>
       {/* Hamburger icon */}
-      <span className="cursor-pointer bg-gray-200 p-1">
-        <Bars3Icon onClick={toggleMenu} className="w-6 h-6" />
+      <span className="cursor-pointer  p-1">
+        <Bars3Icon onClick={toggleMenu} className="w-6 h-6 hover:bg-gray-200" />
       </span>
 
       {/* Sidebar */}
