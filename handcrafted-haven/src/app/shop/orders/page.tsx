@@ -1,21 +1,27 @@
 "use client";
 
 import WithAuth from "@/app/components/withAuth";
-import Orders from "@/app/shop/Orders";
+import OrdersContent from "@/app/shop/Orders"; 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Cookies from "js-cookie";
 
-function OrdersPageContent() {
-  return (
-    <main className="p-6 max-w-5xl mx-auto">
-      <h1 className="text-2xl font-bold mb-4">Orders & Invoices</h1>
-      <Orders />
-    </main>
-  );
-}
+export default function OrdersPage() {
+  const router = useRouter();
 
-export default function ProtectedOrdersPage() {
+  useEffect(() => {
+    // Detect authentication via cookies directly for header navigation
+    const token = Cookies.get("token");
+    const role = Cookies.get("role");
+
+    if (!token || !role) {
+      router.push("/login");
+    }
+  }, [router]);
+
   return (
-    <WithAuth role="CUSTOMER">
-      <OrdersPageContent />
+    <WithAuth role="SELLER">
+      <OrdersContent />
     </WithAuth>
   );
 }

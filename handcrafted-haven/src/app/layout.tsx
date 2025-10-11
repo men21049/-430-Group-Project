@@ -9,28 +9,54 @@ import CartButton from "@/app/ui/CartButton";
 import Link from "next/link";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import Cookies from "js-cookie"; // ✅ Add this import
 
 function HeaderBar({ onOpenCart }: { onOpenCart: () => void }) {
-  // useCart is available because HeaderBar is rendered inside CartProvider
   const { isAuthenticated } = useCart();
   const router = useRouter();
 
+  // 🛒 Handles cart drawer access depending on authentication
   const handleCartClick = () => {
-    // If explicitly authenticated -> open drawer
     if (isAuthenticated === true) {
       onOpenCart();
       return;
     }
+    if (isAuthenticated === false) {
+      router.push("/login");
+      return;
+    }
+    // If null (still loading), do nothing
+  };
 
-    // If explicitly unauthenticated -> go to login
+  // 📦 Handles Orders link access depending on authentication & role
+  const handleOrdersClick = (e: React.MouseEvent) => {
+    e.preventDefault();
+
+    if (isAuthenticated === true) {
+      const rawRole = Cookies.get("role"); // ✅ get role from cookie
+      const role = rawRole ? rawRole.toUpperCase() : null;
+
+      if (role === "SELLER") {
+        router.push("/seller/orders");
+        return;
+      }
+
+      if (role === "ADMIN") {
+        router.push("/admin/orders");
+        return;
+      }
+
+      // default for regular users/customers
+      router.push("/shop/orders");
+      return;
+    }
+
     if (isAuthenticated === false) {
       router.push("/login");
       return;
     }
 
-    // isAuthenticated === null -> auth is still resolving
-    // Do nothing (conservative). Optionally you could show a toast or small loader.
-    return;
+    // If null (still loading), ignore click
   };
 
   return (
@@ -41,39 +67,56 @@ function HeaderBar({ onOpenCart }: { onOpenCart: () => void }) {
             Handcrafted Haven
           </Link>
 
-          {/* Public nav */}
+          {/* Navigation */}
           <nav className="hidden md:flex gap-4">
             <Link href="/shop" className="text-sm hover:underline">
               Shop
             </Link>
-            <Link href="/shop/orders" className="text-sm hover:underline">
+
+            {/* Orders link protected by authentication check */}
+            <a
+              href="#orders"
+              onClick={handleOrdersClick}
+              className={`text-sm hover:underline transition-opacity ${
+                isAuthenticated === false || isAuthenticated === null
+                  ? "opacity-70 cursor-pointer"
+                  : ""
+              }`}
+            >
               Orders
-            </Link>
+            </a>
           </nav>
         </div>
 
+        {/* Cart button */}
         <div className="flex items-center gap-3">
-          {/* pass a disabled prop to the button so it looks inactive while checking */}
-          <CartButton onClick={handleCartClick} disabled={isAuthenticated !== true} />
+          <CartButton
+            onClick={handleCartClick}
+            disabled={isAuthenticated !== true}
+          />
         </div>
       </div>
     </header>
   );
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   const [cartOpen, setCartOpen] = useState(false);
 
   return (
     <html lang="en">
       <body className={inter.className}>
         <CartProvider>
-          {/* HeaderBar is inside provider so it can access useCart() */}
+          {/* Header is wrapped in CartProvider so useCart() works */}
           <HeaderBar onOpenCart={() => setCartOpen(true)} />
 
           <main>{children}</main>
 
-          {/* Only render drawer UI; HeaderBar prevents opening for unauthenticated */}
+          {/* Drawer remains but access is controlled by HeaderBar */}
           <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} />
         </CartProvider>
       </body>

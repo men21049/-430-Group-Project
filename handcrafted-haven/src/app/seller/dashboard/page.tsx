@@ -44,7 +44,7 @@ function DashboardContent() {
           </button>
 
           <Link
-            href="/shop/orders"
+            href="/seller/orders"
             className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 active:scale-95 transition transform duration-150"
           >
             View Orders / Invoices

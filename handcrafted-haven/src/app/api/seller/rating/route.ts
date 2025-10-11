@@ -1,4 +1,4 @@
-// handcrafted-haven/src/app/api/seller/rating/route.ts
+// src/app/api/seller/rating/route.ts
 import { NextResponse } from "next/server";
 import prisma from "@/prisma/client";
 
@@ -23,9 +23,6 @@ export async function GET(req: Request) {
       where: { items: { some: { product: { sellerId } } } },
     });
 
-    // simple rating formula (example): base on revenue and volume
-    // scaling: revenue/1000 gives contribution up to reasonable numbers, units/50 adds a small boost.
-    // clamp to [1,5]
     const raw = (totalRevenue / 1000) + (totalUnits / 50) + (totalOrders / 10);
     const rating = Math.max(1, Math.min(5, Number(raw.toFixed(1))));
 

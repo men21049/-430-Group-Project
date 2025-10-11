@@ -1,24 +1,32 @@
 // src/app/api/auth/me/route.ts
 import { NextResponse } from "next/server";
-import { getCurrentUserFromHeaders } from "@/lib/auth";
+import { getCurrentUserFromRequest } from "@/lib/auth";
+import prisma from "@/prisma/client";
 
-export async function GET(request: Request) {
+/**
+ * Returns the current user payload (decoded JWT) and minimal DB user info.
+ * Accepts token via Authorization header or cookie (token|authToken|access_token).
+ */
+export async function GET(req: Request) {
   try {
-    const user = getCurrentUserFromHeaders(request.headers);
-    if (!user) {
+    const payload = getCurrentUserFromRequest(req);
+    if (!payload?.userId) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
-    // Return limited user info
+
+    // optional: include DB user info (email, role, isAdmin) if you want
+    const user = await prisma.user.findUnique({
+      where: { id: payload.userId },
+      select: { id: true, name: true, email: true, role: true, isAdmin: true },
+    });
+
     return NextResponse.json({
-      user: {
-        userId: user.userId,
-        role: user.role,
-        name: user.name,
-        email: user.email,
-      },
+      ok: true,
+      payload,
+      user: user ?? null,
     });
   } catch (err) {
     console.error("GET /api/auth/me error:", err);
-    return NextResponse.json({ error: "Server error" }, { status: 500 });
+    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
