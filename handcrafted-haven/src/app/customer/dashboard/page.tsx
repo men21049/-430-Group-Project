@@ -1,19 +1,26 @@
 "use client";
 
-import { useState } from "react";
+import WithAuth from "@/app/components/withAuth";
 import Header from '@/app/ui/landing-page/header';
 import Footer from '@/app/ui/footer';
-import Link from 'next/link';
 import CallToAction from '@/app/ui/landing-page/cta-section';
+import { useState } from "react";
+import Link from "next/link";
 
 export default function CustomerDashboard() {
+  return (
+    <WithAuth role="CUSTOMER">
+      <DashboardContent />
+    </WithAuth>
+  );
+}
+
+function DashboardContent() {
   const [pressed, setPressed] = useState(false);
 
   const handleClick = (href: string) => {
-    // small visual feedback
     setPressed(true);
     setTimeout(() => setPressed(false), 180);
-    // then navigate by link (you can also use router.push)
     window.location.href = href;
   };
 

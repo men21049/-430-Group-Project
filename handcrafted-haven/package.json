@@ -6,7 +6,11 @@
     "dev": "next dev --turbopack",
     "build": "next build --turbopack",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "prisma:generate": "pnpm exec prisma generate --schema=src/prisma/schema.prisma",
+    "prisma:migrate": "pnpm exec prisma migrate dev --name dev_migration --schema=src/prisma/schema.prisma",
+    "prisma:studio": "pnpm exec prisma studio --schema=src/prisma/schema.prisma",
+    "prisma:reset": "pnpm exec prisma migrate reset --schema=src/prisma/schema.prisma"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
@@ -20,25 +24,29 @@
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.544.0",
     "next": "15.5.3",
-    "prisma": "^6.16.3",
+    "pdfkit": "^0.17.2",
     "react": "19.1.0",
     "react-dom": "19.1.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4.1.13",
+    "@types/js-cookie": "^3.0.6",
+    "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20",
+    "@types/pdfkit": "^0.17.3",
     "@types/react": "^19",
     "@types/react-dom": "^19",
     "autoprefixer": "^10.4.21",
     "eslint": "^9",
     "eslint-config-next": "15.5.3",
     "postcss": "^8.5.6",
+    "prisma": "^6.16.3",
     "tailwindcss": "^4.1.13",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",
     "tsx": "^4.20.6",
     "typescript": "^5"
   },
-  "packageManager": "pnpm@10.11.0+sha512.6540583f41cc5f628eb3d9773ecee802f4f9ef9923cc45b69890fb47991d4b092964694ec3a4f738a420c918a333062c8b925d312f42e4f0c263eb603551f977"
+  "packageManager": "pnpm@10.11.0"
 }
