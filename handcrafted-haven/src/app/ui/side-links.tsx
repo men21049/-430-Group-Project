@@ -9,7 +9,6 @@ import {
   UserIcon,
   ShoppingBagIcon,
   PlusCircleIcon,
-  // LogoutIcon removed; replaced with a button
 } from "@heroicons/react/24/outline";
 
 type NavLink = {
@@ -32,18 +31,15 @@ export default function NavLinks() {
     Cookies.remove("role");
     Cookies.remove("name");
     setRole(null);
-    router.push("/login");
+    router.push("/"); // redirect to landing page
   };
 
-  // Guest links (not logged in)
   const guestLinks: NavLink[] = [
     { name: "Home", href: "/", icon: HomeIcon },
     { name: "Login", href: "/login", icon: UserIcon },
-    { name: "Sign Up Customer", href: "/signup/customer", icon: UserIcon },
-    { name: "Sign Up Seller", href: "/signup/seller", icon: UserIcon },
+    { name: "Join", href: "/signup/customer", icon: UserIcon },
   ];
 
-  // Customer links
   const customerLinks: NavLink[] = [
     { name: "Home", href: "/", icon: HomeIcon },
     { name: "My Account", href: "/account", icon: UserIcon },
@@ -51,7 +47,6 @@ export default function NavLinks() {
     { name: "Logout", onClick: handleLogout },
   ];
 
-  // Seller links
   const sellerLinks: NavLink[] = [
     { name: "Home", href: "/", icon: HomeIcon },
     { name: "My Shop", href: "/seller/dashboard", icon: UserIcon },
@@ -61,23 +56,25 @@ export default function NavLinks() {
 
   const links = role === "SELLER" ? sellerLinks : role === "CUSTOMER" ? customerLinks : guestLinks;
 
+  const handleLinkClick = (href?: string, onClick?: () => void) => {
+    if (onClick) {
+      onClick();
+    } else if (href) {
+      router.push(href);
+    }
+  };
+
   return (
     <div className="flex flex-col gap-2 w-full">
-      {links.map((link) =>
-        link.href ? (
-          <Link key={link.name} href={link.href} className="flex gap-2 items-center justify-center hover:bg-gray-100 active:bg-gray-200 p-2 rounded-md">
-            {link.icon && <link.icon className="w-5 h-5" />} {link.name}
-          </Link>
-        ) : (
-          <button
-            key={link.name}
-            onClick={link.onClick}
-            className="flex gap-2 items-center justify-center hover:bg-gray-100 active:bg-gray-200 p-2 rounded-md w-full"
-          >
-            {link.icon && <link.icon className="w-5 h-5" />} {link.name}
-          </button>
-        )
-      )}
+      {links.map((link) => (
+        <button
+          key={link.name}
+          onClick={() => handleLinkClick(link.href, link.onClick)}
+          className="flex gap-2 items-center justify-center hover:bg-gray-100 active:bg-gray-200 p-2 rounded-md w-full"
+        >
+          {link.icon && <link.icon className="w-5 h-5" />} {link.name}
+        </button>
+      ))}
     </div>
   );
 }

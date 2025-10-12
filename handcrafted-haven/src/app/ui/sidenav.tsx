@@ -66,10 +66,8 @@ export default function NavigationBar() {
   const handleSignOut = async () => {
     try {
       await fetch("/api/auth/logout", { method: "POST", credentials: "include" });
-    } catch {
-      // ignore
-    } finally {
-      // best-effort client clear
+    } catch {}
+    finally {
       try {
         document.cookie = "token=; Max-Age=0; path=/";
         document.cookie = "authToken=; Max-Age=0; path=/";
@@ -78,7 +76,7 @@ export default function NavigationBar() {
         document.cookie = "id=; Max-Age=0; path=/";
       } catch {}
       setUser(null);
-      router.push("/login");
+      router.push("/"); // redirect to landing page
     }
   };
 
@@ -86,6 +84,11 @@ export default function NavigationBar() {
   const ordersHref = role === "SELLER" ? "/seller/orders" : role === "ADMIN" ? "/admin/orders" : "/orders";
   const productsHref = role === "SELLER" || role === "ADMIN" ? "/seller/products" : "/shop";
   const dashboardHref = role === "SELLER" ? "/seller/dashboard" : role === "ADMIN" ? "/admin" : "/";
+
+  const handleLinkClick = (href: string) => {
+    setIsOpen(false); // close menu immediately
+    router.push(href);
+  };
 
   return (
     <div>
@@ -109,34 +112,34 @@ export default function NavigationBar() {
         </div>
 
         <nav className="w-full flex flex-col gap-2">
-          <Link href="/shop" className={linkClass(pathname === "/shop")}>Shop</Link>
+          <button onClick={() => handleLinkClick("/shop")} className={linkClass(pathname === "/shop")}>Shop</button>
 
-          <Link href={productsHref} className={linkClass(pathname?.startsWith("/seller") || pathname?.startsWith("/shop"))}>
+          <button onClick={() => handleLinkClick(productsHref)} className={linkClass(pathname?.startsWith("/seller") || pathname?.startsWith("/shop"))}>
             {role === "SELLER" || role === "ADMIN" ? "My Products" : "Products"}
-          </Link>
+          </button>
 
-          <Link href={dashboardHref} className={linkClass(pathname?.startsWith("/seller") || pathname?.startsWith("/admin"))}>
+          <button onClick={() => handleLinkClick(dashboardHref)} className={linkClass(pathname?.startsWith("/seller") || pathname?.startsWith("/admin"))}>
             Dashboard
-          </Link>
+          </button>
 
-          <Link href={ordersHref} className={linkClass(pathname?.includes("/orders"))}>
+          <button onClick={() => handleLinkClick(ordersHref)} className={linkClass(pathname?.includes("/orders"))}>
             Orders
-          </Link>
+          </button>
 
-          <Link href="/cart" className={linkClass(pathname === "/cart")}>Cart</Link>
+          <button onClick={() => handleLinkClick("/cart")} className={linkClass(pathname === "/cart")}>Cart</button>
 
           {!loading && !user && (
             <>
-              <Link href="/login" className={linkClass(pathname === "/login")}>Login</Link>
-              <Link href="/register" className={linkClass(pathname === "/register")}>Join</Link>
+              <button onClick={() => handleLinkClick("/login")} className={linkClass(pathname === "/login")}>Login</button>
+              <button onClick={() => handleLinkClick("/signup/customer")} className={linkClass(pathname === "/signup/customer")}>Join</button>
             </>
           )}
 
           {!loading && user && (
             <>
-              <Link href={role === "SELLER" ? "/seller/profile" : "/account"} className={linkClass(false)}>
+              <button onClick={() => handleLinkClick(role === "SELLER" ? "/seller/profile" : "/account")} className={linkClass(false)}>
                 Profile
-              </Link>
+              </button>
               <button onClick={handleSignOut} className="text-left text-red-600 text-sm px-2 py-1 rounded hover:bg-red-50">
                 Logout
               </button>
@@ -147,7 +150,6 @@ export default function NavigationBar() {
         {/* small spacer to push content up */}
         <div className="flex-1" />
 
-        {/* optionally show user at bottom */}
         <div className="w-full text-sm text-gray-500 mt-4">
           {loading ? "Checking session…" : user ? `Signed in as ${user.name}` : "Not signed in"}
         </div>
