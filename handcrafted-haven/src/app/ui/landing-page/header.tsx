@@ -27,31 +27,33 @@ export default function Header() {
   const [authLoading, setAuthLoading] = useState(true);
 
   useEffect(() => {
-    // fetch /api/auth/me to determine logged-in user (server-side token, cookie, or Authorization header)
     const controller = new AbortController();
     async function loadUser() {
       setAuthLoading(true);
       try {
-        const res = await fetch("/api/auth/me", { credentials: "include", signal: controller.signal });
+        const res = await fetch("/api/auth/me", {
+          credentials: "include",
+          signal: controller.signal,
+        });
         if (!res.ok) {
           setUser(null);
           setAuthLoading(false);
           return;
         }
         const data = await res.json();
-        // prefer DB user object if available
         const u = (data && (data.user ?? data.payload)) || null;
         if (u) {
           setUser({
             id: u.id ?? u.userId,
             name: u.name ?? u.email ?? "",
-            role: (u.role ?? (data.payload?.role ?? "")).toString().toUpperCase?.() ?? "",
+            role:
+              (u.role ?? (data.payload?.role ?? "")).toString().toUpperCase?.() ??
+              "",
           });
         } else {
           setUser(null);
         }
       } catch (err) {
-        // network/abort -> treat as unauthenticated
         setUser(null);
       } finally {
         setAuthLoading(false);
@@ -77,13 +79,11 @@ export default function Header() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  // Navigate to login with small press animation (or to vendor dashboard if already logged in)
   const handleSignIn = () => {
     setPressed(true);
     setTimeout(() => {
       setPressed(false);
       if (user && user.id) {
-        // if seller -> go to seller dashboard; if admin -> admin dashboard; else go to user dashboard/profile
         const role = (user.role ?? "").toUpperCase();
         if (role === "SELLER") router.push("/seller/dashboard");
         else if (role === "ADMIN") router.push("/admin");
@@ -94,7 +94,6 @@ export default function Header() {
     }, 150);
   };
 
-  // keyboard activation
   const handleKey = (e: React.KeyboardEvent) => {
     if (e.key === "Enter" || e.key === " ") {
       e.preventDefault();
@@ -102,36 +101,29 @@ export default function Header() {
     }
   };
 
-  // Logout helper: best-effort client-side clearing and redirect.
-  // If you use HttpOnly cookies, create a server /api/auth/logout route and call it instead.
   const handleLogout = () => {
     try {
-      // try server logout first (if you implement it)
       fetch("/api/auth/logout", { method: "POST", credentials: "include" }).catch(() => {});
     } finally {
-      // clear non-HttpOnly cookies as fallback
       try {
         document.cookie = "token=; Max-Age=0; path=/";
         document.cookie = "authToken=; Max-Age=0; path=/";
         document.cookie = "access_token=; Max-Age=0; path=/";
         document.cookie = "role=; Max-Age=0; path=/";
         document.cookie = "id=; Max-Age=0; path=/";
-      } catch (e) {
-        // ignore
-      }
+      } catch (e) {}
       setUser(null);
       router.push("/login");
     }
   };
 
-  // Build role-aware hrefs for header links so sellers/ admins get correct destinations
   const role = user?.role ?? null;
   const userId = user?.id ?? null;
 
   const sellerProductsHref = role === "SELLER" || role === "ADMIN" ? "/seller/products" : "/shop";
   const sellerDashboardHref = role === "SELLER" ? "/seller/dashboard" : role === "ADMIN" ? "/admin" : "/account";
   const ordersHref =
-    role === "SELLER" ? "/seller/orders" : role === "ADMIN" ? "/admin/orders" : "/login";
+    role === "SELLER" ? "/seller/orders" : role === "ADMIN" ? "/admin/orders" : null; // hide Orders for customers
 
   return (
     <header
@@ -174,18 +166,18 @@ export default function Header() {
           Dashboard
         </a>
 
-        <a href={ordersHref} className="text-sm text-gray-600 hover:text-gray-900">
-          Orders
-        </a>
+        {ordersHref && (
+          <a href={ordersHref} className="text-sm text-gray-600 hover:text-gray-900">
+            Orders
+          </a>
+        )}
       </nav>
 
       <div className="flex items-center gap-3 ml-4">
-        {/* If auth check is still loading, show neutral button */}
         {!authLoading && user && user.id ? (
           <div className="flex items-center gap-3">
             <button
               onClick={() => {
-                // quick go to profile or seller profile
                 if (role === "SELLER") router.push("/seller/profile");
                 else if (role === "ADMIN") router.push("/admin");
                 else router.push("/account");
@@ -193,7 +185,6 @@ export default function Header() {
               className="inline-flex items-center gap-2 px-3 py-2 rounded-full text-sm font-medium transition-transform duration-150 ease-out focus:outline-none focus:ring-2 focus:ring-offset-2 bg-gray-100"
               aria-label="Account"
             >
-              {/* simple avatar placeholder */}
               <div className="w-7 h-7 rounded-full bg-gray-300 flex items-center justify-center text-xs font-semibold text-gray-700">
                 {user.name ? user.name.charAt(0).toUpperCase() : "U"}
               </div>

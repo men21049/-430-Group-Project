@@ -9,7 +9,7 @@ import CartButton from "@/app/ui/CartButton";
 import Link from "next/link";
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
-import Cookies from "js-cookie"; // ✅ Add this import
+import Cookies from "js-cookie";
 
 function HeaderBar({ onOpenCart }: { onOpenCart: () => void }) {
   const { isAuthenticated } = useCart();
@@ -29,34 +29,14 @@ function HeaderBar({ onOpenCart }: { onOpenCart: () => void }) {
   };
 
   // 📦 Handles Orders link access depending on authentication & role
-  const handleOrdersClick = (e: React.MouseEvent) => {
+  const handleOrdersClick = (e: React.MouseEvent, role: string) => {
     e.preventDefault();
 
-    if (isAuthenticated === true) {
-      const rawRole = Cookies.get("role"); // ✅ get role from cookie
-      const role = rawRole ? rawRole.toUpperCase() : null;
-
-      if (role === "SELLER") {
-        router.push("/seller/orders");
-        return;
-      }
-
-      if (role === "ADMIN") {
-        router.push("/admin/orders");
-        return;
-      }
-
-      // default for regular users/customers
-      router.push("/shop/orders");
-      return;
+    if (role === "SELLER") {
+      router.push("/seller/orders");
+    } else if (role === "ADMIN") {
+      router.push("/admin/orders");
     }
-
-    if (isAuthenticated === false) {
-      router.push("/login");
-      return;
-    }
-
-    // If null (still loading), ignore click
   };
 
   return (
@@ -73,18 +53,22 @@ function HeaderBar({ onOpenCart }: { onOpenCart: () => void }) {
               Shop
             </Link>
 
-            {/* Orders link protected by authentication check */}
-            <a
-              href="#orders"
-              onClick={handleOrdersClick}
-              className={`text-sm hover:underline transition-opacity ${
-                isAuthenticated === false || isAuthenticated === null
-                  ? "opacity-70 cursor-pointer"
-                  : ""
-              }`}
-            >
-              Orders
-            </a>
+            {/* Orders link protected by authentication check and role */}
+            {isAuthenticated === true && (() => {
+              const rawRole = Cookies.get("role");
+              const role = rawRole ? rawRole.toUpperCase() : null;
+              // hide Orders for customers
+              if (role === "CUSTOMER") return null;
+              return (
+                <a
+                  href="#orders"
+                  onClick={(e) => handleOrdersClick(e, role)}
+                  className="text-sm hover:underline transition-opacity"
+                >
+                  Orders
+                </a>
+              );
+            })()}
           </nav>
         </div>
 

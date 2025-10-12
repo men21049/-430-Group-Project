@@ -1,32 +1,55 @@
 import { NextResponse } from "next/server";
 import prisma from "@/prisma/client";
 
-// GET /api/orders?customerId=optional
+// GET /api/orders
 export async function GET(req: Request) {
   try {
-    const url = new URL(req.url);
-    const qCustomer = url.searchParams.get("customerId");
-
-    // get userId from cookie if not provided in query
+    // extract userId from cookie
     const cookie = req.headers.get("cookie") || "";
-    const cookieMatch = cookie.match(/userId=([^;]+)/);
-    const customerId = qCustomer ?? cookieMatch?.[1];
+    const match = cookie.match(/userId=([^;]+)/);
+    const userId = match?.[1];
 
-    if (!customerId) {
+    if (!userId) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const orders = await prisma.order.findMany({
-      where: { customerId },
-      orderBy: { createdAt: "desc" },
-      include: {
-        items: {
-          include: {
-            product: { select: { id: true, name: true, price: true, image: true, sellerId: true } },
-          },
+    const user = await prisma.user.findUnique({ where: { id: userId } });
+    if (!user) {
+      return NextResponse.json({ error: "User not found" }, { status: 401 });
+    }
+
+    let orders;
+
+    if (user.role === "ADMIN") {
+      // admin sees all orders
+      orders = await prisma.order.findMany({
+        include: {
+          items: { include: { product: true } },
+          customer: { select: { userId: true } },
         },
-      },
-    });
+        orderBy: { createdAt: "desc" },
+      });
+    } else if (user.role === "SELLER") {
+      // seller sees orders with their products
+      orders = await prisma.order.findMany({
+        where: { items: { some: { product: { sellerId: userId } } } },
+        include: {
+          items: { include: { product: true } },
+          customer: { select: { userId: true } },
+        },
+        orderBy: { createdAt: "desc" },
+      });
+    } else {
+      // customer sees only own orders
+      orders = await prisma.order.findMany({
+        where: { customer: { userId } },
+        include: {
+          items: { include: { product: true } },
+          customer: { select: { userId: true } },
+        },
+        orderBy: { createdAt: "desc" },
+      });
+    }
 
     const out = orders.map((o) => ({
       id: o.id,
@@ -50,7 +73,7 @@ export async function GET(req: Request) {
   }
 }
 
-// POST /api/orders
+// POST /api/orders remains unchanged
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -69,7 +92,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No items in order" }, { status: 400 });
     }
 
-    // Build order items and compute total
     const orderItemsData: { productId: string; quantity: number; price: number }[] = [];
     let total = 0;
 
@@ -84,7 +106,6 @@ export async function POST(req: Request) {
       orderItemsData.push({ productId: product.id, quantity: qty, price });
     }
 
-    // Create order
     const order = await prisma.order.create({
       data: {
         customer: { connect: { id: customerId } },

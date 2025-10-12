@@ -1,26 +1,31 @@
-// handcrafted-haven/src/app/shop/orders/PayButton.tsx
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 
-export default function PayButton({ orderId, after }: { orderId: string; after?: () => void }) {
+export default function PayButton({ orderId, status, after }: { orderId: string; status: string; after?: () => void }) {
   const [loading, setLoading] = useState(false);
+  const [paid, setPaid] = useState(status === "PAID");
+
+  useEffect(() => {
+    setPaid(status === "PAID");
+  }, [status]);
 
   const handlePay = async () => {
-    if (!confirm("Mark this order as PAID?")) return;
+    if (!confirm("Proceed with payment for this order?")) return;
     setLoading(true);
     try {
       const res = await fetch(`/api/orders/${orderId}/pay`, { method: "POST", credentials: "include" });
       const data = await res.json();
       if (res.ok && data?.ok) {
-        alert("Order marked as PAID.");
+        setPaid(true);
+        alert("Payment successful. Order marked as PAID.");
         after?.();
       } else {
-        alert("Failed: " + (data?.error || "Unknown error"));
+        alert("Payment failed: " + (data?.error || "Unknown error"));
       }
     } catch (err) {
       console.error(err);
-      alert("Network error while marking paid");
+      alert("Network error while processing payment.");
     } finally {
       setLoading(false);
     }
@@ -29,10 +34,12 @@ export default function PayButton({ orderId, after }: { orderId: string; after?:
   return (
     <button
       onClick={handlePay}
-      disabled={loading}
-      className="px-4 py-2 bg-indigo-600 text-white rounded hover:bg-indigo-700 disabled:opacity-60"
+      disabled={loading || paid}
+      className={`px-4 py-2 rounded text-white ${
+        paid ? "bg-green-600" : "bg-indigo-600 hover:bg-indigo-700"
+      } disabled:opacity-60`}
     >
-      {loading ? "Processing..." : "Mark as Paid"}
+      {loading ? "Processing..." : paid ? "Paid" : "Pay"}
     </button>
   );
 }

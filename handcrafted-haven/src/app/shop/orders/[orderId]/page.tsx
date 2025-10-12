@@ -2,9 +2,17 @@
 import React, { useEffect, useState } from 'react';
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import PayButton from '../PayButton'; // make sure this path is correct
 
 type OrderItem = { id: string; productId: string; name: string; quantity: number; price: number };
-type Order = { id: string; createdAt: string; total: number; status: string; items: OrderItem[]; customer: { name: string; email: string } };
+type Order = {
+  id: string;
+  createdAt: string;
+  total: number;
+  status: string;
+  items: OrderItem[];
+  customer: { name: string; email: string };
+};
 
 type Props = { params: { orderId: string } };
 
@@ -63,7 +71,7 @@ export default function OrderDetail({ params }: Props) {
         </ul>
       )}
 
-      <div className="mt-6">
+      <div className="mt-6 flex gap-2">
         <a
           href={`/api/orders/${order.id}/invoice`}
           target="_blank"
@@ -71,6 +79,11 @@ export default function OrderDetail({ params }: Props) {
         >
           Download Invoice (PDF)
         </a>
+
+        <PayButton
+          orderId={order.id}
+          after={() => setOrder({ ...order, status: 'PAID' })}
+        />
       </div>
     </div>
   );

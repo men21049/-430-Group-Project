@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import PayButton from './orders/PayButton';
 
 type OrderItem = {
   id: string;
@@ -64,17 +65,30 @@ export default function Orders() {
               </p>
               <p className="text-sm text-gray-500">Status: {order.status}</p>
             </div>
+
             <div className="flex gap-2 items-center">
               <div className="text-right">
                 <div className="text-sm text-gray-500">Total</div>
                 <div className="font-bold">${order.total.toFixed(2)}</div>
               </div>
+
               <Link
                 href={`/shop/orders/${order.id}`}
                 className="px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700"
               >
                 View Invoice
               </Link>
+
+              <PayButton
+                orderId={order.id}
+                after={() => {
+                  setOrders((prev) =>
+                    prev.map((o) =>
+                      o.id === order.id ? { ...o, status: 'PAID' } : o
+                    )
+                  );
+                }}
+              />
             </div>
           </div>
 
