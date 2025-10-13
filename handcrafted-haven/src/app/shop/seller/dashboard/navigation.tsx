@@ -1,5 +1,5 @@
 
-import NavItems from "../../ui/dashboard/nav-item-seller";
+import NavItems from "@/app/ui/dashboard/nav-item-seller";
 
 
 export default function Navigation() {
