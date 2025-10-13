@@ -1,5 +1,5 @@
 // src/app/seller/products/loading.tsx
-import SkeletonCard from "@/components/ui/SkeletonCard";
+import SkeletonCard from "@/app/ui/Skeleton";
 
 export default function LoadingSellerProducts() {
   return (
