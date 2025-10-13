@@ -42,7 +42,7 @@ function HeaderBar({ onOpenCart }: { onOpenCart: () => void }) {
   };
 
   return (
-    <header className="w-full border-b bg-white/80 backdrop-blur-sm sticky top-0 z-40">
+    <header className="w-full border-b bg-white/90 backdrop-blur-sm sticky top-0 z-100">
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-6">
           <Link href="/" className="text-xl font-bold">

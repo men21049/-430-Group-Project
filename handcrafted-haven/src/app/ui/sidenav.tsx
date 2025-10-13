@@ -94,7 +94,7 @@ export default function NavigationBar() {
   return (
     <div>
       {/* Hamburger icon */}
-      <span className="cursor-pointer bg-gray-200 p-1 rounded" aria-label="Open menu">
+      <span className="cursor-pointer p-1 rounded" aria-label="Open menu">
         <Bars3Icon onClick={toggleMenu} className="w-6 h-6" />
       </span>
 
@@ -153,7 +153,7 @@ export default function NavigationBar() {
               <button onClick={() => handleLinkClick(role === "SELLER" ? "/seller/profile" : "/account")} className={linkClass(false)}>
                 Profile
               </button>
-              <button onClick={handleSignOut} className="text-left text-red-600 text-sm px-2 py-1 rounded hover:bg-red-50">
+              <button onClick={handleSignOut} className="text-left text-red-600  px-2 py-1 rounded hover:bg-red-50">
                 Logout
               </button>
             </>
@@ -179,5 +179,5 @@ export default function NavigationBar() {
 }
 
 function linkClass(active?: boolean) {
-  return `block px-3 py-2 rounded w-full ${active ? "bg-gray-100 font-semibold" : "text-gray-700 hover:bg-gray-50"}`;
+  return `block px-3 py-2 rounded w-full text-left ${active ? "bg-gray-100 font-semibold" : "text-gray-700 hover:bg-gray-50"}`;
 }

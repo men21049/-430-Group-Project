@@ -46,7 +46,7 @@ export default function CartDrawer({ open = false, onClose }: Props) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 flex justify-end" role="dialog" aria-modal>
+    <div className="fixed inset-0 z-110 flex justify-end" role="dialog" aria-modal>
       <div className="fixed inset-0 bg-black/30" onClick={() => onClose?.()} />
 
       <aside className="relative bg-white w-96 max-w-full h-full p-4 overflow-y-auto">

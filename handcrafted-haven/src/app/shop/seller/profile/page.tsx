@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Header from "@/app/ui/landing-page/header";
-import Footer from "@/app/ui/footer";
+
 import CallToAction from "@/app/ui/landing-page/cta-section";
 import Image from "next/image";
 import { getSellerInfo } from "@/app/lib/data";
@@ -72,7 +72,9 @@ function SellerProfilePageContent() {
           )}
 
           <div className="flex-1">
-            <h2 className="text-2xl font-semibold mb-2">{seller.name || "Unnamed Seller"}</h2>
+            <h2 className="text-2xl font-semibold mb-2">
+              {seller.name || "Unnamed Seller"}
+            </h2>
             <p className="text-gray-600 mb-4">
               {seller.bio || "No bio provided yet."}
             </p>
@@ -88,7 +90,6 @@ function SellerProfilePageContent() {
       </div>
 
       <CallToAction />
-      <Footer />
     </div>
   );
 }

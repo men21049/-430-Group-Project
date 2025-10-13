@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import ProductCard from "@/app/shop/ProductCard";
 import Header from "@/app/ui/landing-page/header";
-import Footer from "@/app/ui/footer";
+
 import CallToAction from "@/app/ui/landing-page/cta-section";
 import WithAuth from "@/app/components/withAuth";
 
@@ -138,7 +138,6 @@ function SellerProductsContent() {
         )}
       </div>
       <CallToAction />
-      <Footer />
     </>
   );
 }

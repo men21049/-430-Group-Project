@@ -4,7 +4,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Header from "@/app/ui/landing-page/header";
-import Footer from "@/app/ui/footer";
+
 import CallToAction from "@/app/ui/landing-page/cta-section";
 import WithAuth from "@/app/components/withAuth";
 
@@ -38,7 +38,9 @@ function EditProductPage() {
       setLoading(true);
       setError(null);
       try {
-        const res = await fetch(`/api/seller/products/${productId}`, { credentials: "include" });
+        const res = await fetch(`/api/seller/products/${productId}`, {
+          credentials: "include",
+        });
         if (res.status === 401) {
           router.push("/login");
           return;
@@ -107,18 +109,22 @@ function EditProductPage() {
     <>
       <Header />
       <div className="max-w-3xl mx-auto p-6 space-y-6">
-        <h1 className="text-3xl font-bold mb-6 text-indigo-700">Edit Product</h1>
+        <h1 className="text-3xl font-bold mb-6 text-indigo-700">
+          Edit Product
+        </h1>
 
         {/* Basic Info */}
         <section className="p-6 rounded-lg shadow-md bg-indigo-50 border-l-4 border-indigo-600 hover:shadow-lg transition">
-          <h2 className="text-xl font-semibold mb-3 text-indigo-700">Basic Info</h2>
+          <h2 className="text-xl font-semibold mb-3 text-indigo-700">
+            Basic Info
+          </h2>
           <div className="flex flex-col gap-4">
             <label className="flex flex-col text-gray-800">
               Product Name <span className="text-red-500">*</span>
               <input
                 type="text"
                 value={name}
-                onChange={e => setName(e.target.value)}
+                onChange={(e) => setName(e.target.value)}
                 className="mt-1 p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"
               />
             </label>
@@ -128,7 +134,7 @@ function EditProductPage() {
               <input
                 type="text"
                 value={category}
-                onChange={e => setCategory(e.target.value)}
+                onChange={(e) => setCategory(e.target.value)}
                 className="mt-1 p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"
               />
             </label>
@@ -143,7 +149,7 @@ function EditProductPage() {
             <input
               type="number"
               value={price}
-              onChange={e => setPrice(Number(e.target.value))}
+              onChange={(e) => setPrice(Number(e.target.value))}
               className="mt-1 p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400"
               min={0}
               step={0.01}
@@ -153,13 +159,15 @@ function EditProductPage() {
 
         {/* Inventory */}
         <section className="p-6 rounded-lg shadow-md bg-yellow-50 border-l-4 border-yellow-500 hover:shadow-lg transition">
-          <h2 className="text-xl font-semibold mb-3 text-yellow-700">Inventory</h2>
+          <h2 className="text-xl font-semibold mb-3 text-yellow-700">
+            Inventory
+          </h2>
           <label className="flex flex-col text-gray-800">
             Stock
             <input
               type="number"
               value={stock}
-              onChange={e => setStock(Number(e.target.value))}
+              onChange={(e) => setStock(Number(e.target.value))}
               className="mt-1 p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-yellow-400"
               min={0}
             />
@@ -174,7 +182,7 @@ function EditProductPage() {
             <input
               type="text"
               value={image}
-              onChange={e => setImage(e.target.value)}
+              onChange={(e) => setImage(e.target.value)}
               className="mt-1 p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"
               placeholder="https://example.com/image.jpg"
             />
@@ -182,7 +190,11 @@ function EditProductPage() {
           {image && (
             <div className="mt-3">
               <p className="text-sm text-gray-800">Preview:</p>
-              <img src={image} alt="Product preview" className="h-40 object-contain mt-2 border rounded-lg" />
+              <img
+                src={image}
+                alt="Product preview"
+                className="h-40 object-contain mt-2 border rounded-lg"
+              />
             </div>
           )}
         </section>
@@ -204,7 +216,6 @@ function EditProductPage() {
         </div>
       </div>
       <CallToAction />
-      <Footer />
     </>
   );
 }

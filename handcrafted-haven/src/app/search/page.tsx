@@ -1,25 +1,35 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import ProductCard from '@/app/ui/product-card';
-import Header from '@/app/ui/landing-page/header';
-import Footer from '@/app/ui/footer';
-import CallToAction from '@/app/ui/landing-page/cta-section';
+import { useState, useEffect } from "react";
+import ProductCard from "@/app/ui/product-card";
+import Header from "@/app/ui/landing-page/header";
+import Footer from "@/app/ui/footer";
+import CallToAction from "@/app/ui/landing-page/cta-section";
 
-export default function SearchPage({ searchParams }: { searchParams: { query?: string } }) {
+export default function SearchPage({
+  searchParams,
+}: {
+  searchParams: { query?: string };
+}) {
   const [results, setResults] = useState<any[]>([]);
 
   useEffect(() => {
     async function fetchResults() {
       if (searchParams.query) {
         try {
-          const res = await fetch('/api/products');
-          if (!res.ok) throw new Error('Failed to fetch products');
+          const res = await fetch("/api/products");
+          if (!res.ok) throw new Error("Failed to fetch products");
           const allProducts = await res.json();
 
-          const filtered = allProducts.filter((p: any) =>
-            p.name.toLowerCase().includes(searchParams.query!.toLowerCase()) ||
-            (p.description && p.description.toLowerCase().includes(searchParams.query!.toLowerCase()))
+          const filtered = allProducts.filter(
+            (p: any) =>
+              p.name
+                .toLowerCase()
+                .includes(searchParams.query!.toLowerCase()) ||
+              (p.description &&
+                p.description
+                  .toLowerCase()
+                  .includes(searchParams.query!.toLowerCase()))
           );
 
           setResults(filtered);
@@ -45,7 +55,7 @@ export default function SearchPage({ searchParams }: { searchParams: { query?: s
 
         {results.length > 0 ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {results.map(product => (
+            {results.map((product) => (
               <ProductCard key={product.id} product={product} />
             ))}
           </div>
@@ -54,7 +64,6 @@ export default function SearchPage({ searchParams }: { searchParams: { query?: s
         )}
       </main>
       <CallToAction />
-      <Footer />
     </div>
   );
 }

@@ -128,9 +128,9 @@ export default function Header() {
   return (
     <header
       className={clsx(
-        "sticky top-0 flex items-center gap-3 p-4 bg-white shadow-md transition-transform duration-300 ease-in-out",
+        "sticky top-0 flex flex-1 flex-wrap items-center justify-center gap-3 p-4 bg-white shadow-md transition-transform duration-300 ease-in-out",
         hideHeader ? "-translate-y-full" : "translate-y-0",
-        "z-[9999]"
+        "z-[100]"
       )}
     >
       <NavigationBar />
@@ -152,7 +152,7 @@ export default function Header() {
         <Search placeholder="Search anything..." className="w-full" />
       </div>
 
-      <nav className="flex items-center gap-3">
+      <nav className=" items-center gap-3 hidden md:flex">
         <a href="/shop" className="text-sm text-gray-600 hover:text-gray-900">
           Shop
         </a>

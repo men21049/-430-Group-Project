@@ -4,7 +4,6 @@
 import React, { useEffect, useState } from "react";
 import WithAuth from "@/app/components/withAuth";
 import Header from "@/app/ui/landing-page/header";
-import Footer from "@/app/ui/footer";
 import CallToAction from "@/app/ui/landing-page/cta-section";
 
 export default function SellerOrdersWrapper() {
@@ -77,7 +76,7 @@ function SellerOrdersPage() {
         </div>
       </div>
       <CallToAction />
-      <Footer />
+
     </>
   );
 }

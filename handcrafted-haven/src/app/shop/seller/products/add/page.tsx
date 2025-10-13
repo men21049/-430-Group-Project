@@ -3,7 +3,7 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Header from "@/app/ui/landing-page/header";
-import Footer from "@/app/ui/footer";
+
 import CallToAction from "@/app/ui/landing-page/cta-section";
 import WithAuth from "@/app/components/withAuth";
 
@@ -15,7 +15,9 @@ function AddProductPageContent() {
   const [category, setCategory] = useState("");
   const [image, setImage] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
-  const [status, setStatus] = useState<"idle" | "adding" | "success" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "adding" | "success" | "error">(
+    "idle"
+  );
   const [serverError, setServerError] = useState<string | null>(null);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -70,10 +72,14 @@ function AddProductPageContent() {
 
   const renderButtonText = () => {
     switch (status) {
-      case "adding": return "Adding...";
-      case "success": return "Added!";
-      case "error": return "Failed! Try Again";
-      default: return "Add Product";
+      case "adding":
+        return "Adding...";
+      case "success":
+        return "Added!";
+      case "error":
+        return "Failed! Try Again";
+      default:
+        return "Add Product";
     }
   };
 
@@ -82,7 +88,11 @@ function AddProductPageContent() {
       <Header />
       <div className="max-w-3xl mx-auto p-6">
         <h1 className="text-3xl font-bold mb-6">Add New Product</h1>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4" encType="multipart/form-data">
+        <form
+          onSubmit={handleSubmit}
+          className="flex flex-col gap-4"
+          encType="multipart/form-data"
+        >
           <input
             type="text"
             placeholder="Product Name"
@@ -108,9 +118,19 @@ function AddProductPageContent() {
             className="border p-2 rounded"
             required
           />
-          <input type="file" accept="image/*" onChange={handleImageChange} className="border p-2 rounded" required />
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleImageChange}
+            className="border p-2 rounded"
+            required
+          />
           {preview && (
-            <img src={preview} alt="Preview" className="w-40 h-40 object-cover rounded border" />
+            <img
+              src={preview}
+              alt="Preview"
+              className="w-40 h-40 object-cover rounded border"
+            />
           )}
 
           {serverError && <p className="text-red-600 text-sm">{serverError}</p>}
@@ -119,10 +139,13 @@ function AddProductPageContent() {
             type="submit"
             disabled={status === "adding" || status === "success"}
             className={`px-4 py-2 text-white rounded transition transform hover:scale-105 active:scale-95 ${
-              status === "adding" ? "bg-gray-500 cursor-not-allowed" :
-              status === "success" ? "bg-green-700" :
-              status === "error" ? "bg-red-600" :
-              "bg-green-600 hover:bg-green-700"
+              status === "adding"
+                ? "bg-gray-500 cursor-not-allowed"
+                : status === "success"
+                ? "bg-green-700"
+                : status === "error"
+                ? "bg-red-600"
+                : "bg-green-600 hover:bg-green-700"
             }`}
           >
             {renderButtonText()}
@@ -130,7 +153,6 @@ function AddProductPageContent() {
         </form>
       </div>
       <CallToAction />
-      <Footer />
     </div>
   );
 }
