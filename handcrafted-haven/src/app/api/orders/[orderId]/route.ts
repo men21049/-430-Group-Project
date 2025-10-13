@@ -1,10 +1,14 @@
-import { NextResponse } from "next/server";
+// src/app/api/orders/[orderId]/route.ts
+import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/prisma/client";
 
-export async function GET(req: Request, { params }: { params: { orderId: string } }) {
-  const { orderId } = params;
-
+export async function GET(
+  req: NextRequest,
+  context: { params: Promise<{ orderId: string }> }
+) {
   try {
+    const { orderId } = await context.params;
+
     const order = await prisma.order.findUnique({
       where: { id: orderId },
       include: {
@@ -13,7 +17,9 @@ export async function GET(req: Request, { params }: { params: { orderId: string 
       },
     });
 
-    if (!order) return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    if (!order) {
+      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    }
 
     const out = {
       id: order.id,
