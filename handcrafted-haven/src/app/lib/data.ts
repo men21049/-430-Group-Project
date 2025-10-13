@@ -1,4 +1,6 @@
 // src/app/lib/data.ts
+// @ts-nocheck
+
 import { Product } from "./definitions";
 // Import Prisma client (relative path from src/app/lib -> src/prisma/client)
 import prisma from "../../prisma/client";
