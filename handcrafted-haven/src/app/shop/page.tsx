@@ -1,7 +1,7 @@
-// src/app/shop/page.tsx
 import prisma from "@/prisma/client";
 import ProductCard from "./ProductCard"; // client component
 import CTA from "@/app/ui/landing-page/cta-section";
+import Header from "@/app/ui/landing-page/header";
 
 export default async function ShopPage() {
   const products = await prisma.product.findMany({
@@ -11,6 +11,9 @@ export default async function ShopPage() {
 
   return (
     <>
+      {/* 🔹 Header added on top */}
+      <Header />
+
       <div className="max-w-7xl mx-auto p-4">
         <h1 className="text-2xl font-bold mb-6 text-center">Shop All Products</h1>
 
@@ -34,7 +37,7 @@ export default async function ShopPage() {
         )}
       </div>
 
-      {/* ✅ CTA Section Added */}
+      {/* ✅ CTA Section stays below */}
       <section className="mt-16">
         <CTA />
       </section>

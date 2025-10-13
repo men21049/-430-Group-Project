@@ -7,7 +7,7 @@ export default function CallToAction() {
   const router = useRouter();
 
   const handleExploreNow = () => {
-    router.push("/products"); // 👉 or change to `/explore`
+    router.push("/shop"); // ✅ updated from /products → /shop
   };
 
   return (
