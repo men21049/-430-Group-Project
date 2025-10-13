@@ -1,12 +1,13 @@
 // src/app/api/seller/products/[id]/route.ts
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import prisma from "@/prisma/client";
 import { getCurrentUserFromRequest, isSellerOrAdmin, isAdmin } from "@/lib/auth";
 
-export async function GET(_: Request, { params }: { params: { id: string } }) {
+export async function GET(_: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await context.params;
     const product = await prisma.product.findUnique({
-      where: { id: params.id },
+      where: { id },
       include: { seller: true },
     });
     if (!product) return NextResponse.json({ error: "Not found" }, { status: 404 });
@@ -17,16 +18,16 @@ export async function GET(_: Request, { params }: { params: { id: string } }) {
   }
 }
 
-export async function PUT(req: Request, { params }: { params: { id: string } }) {
+export async function PUT(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await context.params;
     const user = getCurrentUserFromRequest(req);
     if (!user?.userId) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     if (!isSellerOrAdmin(user)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-    const product = await prisma.product.findUnique({ where: { id: params.id } });
+    const product = await prisma.product.findUnique({ where: { id } });
     if (!product) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    // If not admin, ensure ownership
     if (!isAdmin(user)) {
       const seller = await prisma.seller.findUnique({ where: { userId: user.userId } });
       if (!seller || product.sellerId !== seller.id) {
@@ -38,7 +39,7 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
     const { name, price, category, image, stock } = data;
 
     const updated = await prisma.product.update({
-      where: { id: params.id },
+      where: { id },
       data: {
         ...(name ? { name } : {}),
         ...(price !== undefined ? { price: parseFloat(String(price)) } : {}),
@@ -55,14 +56,14 @@ export async function PUT(req: Request, { params }: { params: { id: string } }) 
   }
 }
 
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
+    const { id } = await context.params;
     const user = getCurrentUserFromRequest(req);
     if (!user?.userId) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     if (!isSellerOrAdmin(user)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-    const productId = params.id;
-    const product = await prisma.product.findUnique({ where: { id: productId } });
+    const product = await prisma.product.findUnique({ where: { id } });
     if (!product) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     if (!isAdmin(user)) {
@@ -72,8 +73,7 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
       }
     }
 
-    // Prevent deletion if product has order items
-    const orderItems = await prisma.orderItem.findMany({ where: { productId } });
+    const orderItems = await prisma.orderItem.findMany({ where: { productId: id } });
     if (orderItems.length > 0) {
       return NextResponse.json(
         { error: "Cannot delete product with existing orders" },
@@ -81,7 +81,7 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
       );
     }
 
-    await prisma.product.delete({ where: { id: productId } });
+    await prisma.product.delete({ where: { id } });
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("DELETE /api/seller/products/[id] error:", err);

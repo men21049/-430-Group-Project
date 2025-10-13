@@ -62,6 +62,8 @@ model Product {
   sellerId    String
   createdAt   DateTime @default(now())
   stock       Int?     // optional stock/inventory field
+  ratingRate  Float    @default(0) // average rating
+  ratingCount Int      @default(0) // number of ratings
   seller      Seller   @relation(fields: [sellerId], references: [id])
 
   orderItems OrderItem[] // relation to order items

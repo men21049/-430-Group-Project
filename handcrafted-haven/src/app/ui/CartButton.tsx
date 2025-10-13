@@ -14,25 +14,18 @@ export default function CartButton({
 }) {
   const { totalItems } = useCart();
 
-  // show badge only when authenticated and positive items — your CartContext already handles that
-  const showBadge = totalItems > 0 && !disabled;
+  const showBadge = totalItems > 0;
 
   return (
     <button
-      onClick={(e) => {
-        if (disabled) {
-          e.preventDefault();
-          return;
-        }
-        onClick?.();
-      }}
+      onClick={() => onClick?.()}
       aria-label="Open cart"
       className={clsx(
         "relative inline-flex items-center justify-center p-2 rounded transition",
-        disabled ? "bg-gray-50 cursor-not-allowed text-gray-400" : "hover:bg-gray-100"
+        disabled ? "bg-gray-50 text-gray-400" : "hover:bg-gray-100"
       )}
-      disabled={disabled}
-      title={disabled ? "Please sign in to access your cart" : "Open cart"}
+      title={disabled ? "Please sign in to access certain features" : "Open cart"}
+      type="button"
     >
       <ShoppingCart size={22} />
       {showBadge && (

@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 type Props = { open?: boolean; onClose?: () => void };
 
 export default function CartDrawer({ open = false, onClose }: Props) {
-  const { items, totalPrice, increment, decrement, removeItem, clearCart, checkout, isAuthenticated } = useCart();
+  const { items, totalPrice, increment, decrement, removeItem, clearCart, isAuthenticated } = useCart();
   const [loading, setLoading] = useState(false);
   const router = useRouter();
 
@@ -21,13 +21,25 @@ export default function CartDrawer({ open = false, onClose }: Props) {
 
     setLoading(true);
     try {
-      const res = await checkout();
-      if (res.ok) {
-        alert("✅ Order placed successfully! ID: " + res.orderId);
+      const res = await fetch("/api/checkout", {
+        method: "POST",
+        credentials: "include",
+      });
+      const data = await res.json().catch(() => ({} as any));
+
+      if (res.ok && data?.orderId) {
+        // clear local UI and server cart via clearCart()
+        try {
+          await clearCart();
+        } catch (e) {
+          // ignore – cart was likely cleared server-side by checkout transaction
+        }
+        alert("✅ Order placed successfully! ID: " + data.orderId);
         onClose?.();
-        if (res.orderId) router.push(`/shop/orders/${res.orderId}`);
+        router.push(`/shop/orders/${data.orderId}`);
       } else {
-        alert("❌ Checkout failed: " + (res.error || "Unknown error"));
+        const msg = data?.error || "Unknown error during checkout";
+        alert("❌ Checkout failed: " + msg);
       }
     } catch (err: any) {
       console.error("Checkout exception:", err);
@@ -77,16 +89,30 @@ export default function CartDrawer({ open = false, onClose }: Props) {
                     </div>
 
                     <div className="mt-2 flex items-center gap-2">
-                      <button onClick={() => decrement(item.id)} className="px-2 py-1 border rounded">
+                      <button
+                        onClick={() => decrement(item.id)}
+                        className="px-2 py-1 border rounded"
+                        aria-label={`Decrease ${item.name}`}
+                        type="button"
+                      >
                         −
                       </button>
                       <div className="px-3" aria-live="polite">{item.quantity}</div>
-                      <button onClick={() => increment(item.id)} className="px-2 py-1 border rounded">
+                      <button
+                        onClick={() => increment(item.id)}
+                        className="px-2 py-1 border rounded"
+                        aria-label={`Increase ${item.name}`}
+                        type="button"
+                      >
                         +
                       </button>
                       <button
-                        onClick={() => { if (!confirm(`Remove ${item.name}?`)) return; removeItem(item.id); }}
+                        onClick={() => {
+                          if (!confirm(`Remove ${item.name}?`)) return;
+                          removeItem(item.id);
+                        }}
                         className="ml-auto text-sm text-red-600 hover:underline"
+                        type="button"
                       >
                         Remove
                       </button>
@@ -107,6 +133,7 @@ export default function CartDrawer({ open = false, onClose }: Props) {
                   onClick={handleCheckout}
                   disabled={loading}
                   className="w-full px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700 disabled:opacity-60"
+                  type="button"
                 >
                   {loading ? "Processing..." : "Checkout"}
                 </button>
@@ -114,6 +141,7 @@ export default function CartDrawer({ open = false, onClose }: Props) {
                 <button
                   onClick={handleClear}
                   className="w-full px-4 py-2 border rounded bg-white text-sm hover:bg-gray-50"
+                  type="button"
                 >
                   Clear Cart
                 </button>

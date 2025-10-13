@@ -2,7 +2,15 @@
 
 import { useState, useEffect } from "react";
 
-export default function PayButton({ orderId, status, after }: { orderId: string; status: string; after?: () => void }) {
+export default function PayButton({
+  orderId,
+  status,
+  after,
+}: {
+  orderId: string;
+  status: string; // ✅ required
+  after?: () => void;
+}) {
   const [loading, setLoading] = useState(false);
   const [paid, setPaid] = useState(status === "PAID");
 

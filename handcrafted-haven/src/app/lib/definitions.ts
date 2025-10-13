@@ -1,12 +1,12 @@
 export type Product = {
-    id: number
-    title: string,
-    price: number,
-    category: string,
-    description: string,
-    image: string,
+    id: string  // change from number to string
+    title: string
+    price: number
+    category: string
+    description: string
+    image?: string
     rating: {
-        rate: number,
+        rate: number
         count: number
     }
 }

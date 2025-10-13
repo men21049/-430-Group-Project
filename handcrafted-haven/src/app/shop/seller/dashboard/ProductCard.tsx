@@ -1,42 +1,84 @@
-// src/app/shop/seller/dashboard/ProductCard.tsx
-"use client";
+'use client';
 
-import Link from "next/link";
+import Image from 'next/image';
+import Link from 'next/link';
+import { useState } from 'react';
+import { useCart } from '@/app/context/CartContext';
 
-interface ProductCardProps {
+export type Product = {
   id: string;
   name: string;
   price: number;
-  description?: string;
   image?: string;
-}
+  description?: string;
+};
 
-export default function ProductCard({ id, name, price, description, image }: ProductCardProps) {
+export type ProductCardProps = {
+  product: Product;
+  sellerName?: string;
+  showAddToCart?: boolean;
+  children?: React.ReactNode; // allow children
+};
+
+export default function ProductCard({
+  product,
+  sellerName,
+  showAddToCart = true,
+  children,
+}: ProductCardProps) {
+  const { addItem } = useCart();
+  const [added, setAdded] = useState(false);
+
+  const handleAdd = async (e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    try {
+      await addItem({ productId: product.id, quantity: 1 });
+      setAdded(true);
+      setTimeout(() => setAdded(false), 1200);
+    } catch (err) {
+      console.error('Failed to add to cart:', err);
+      alert('Failed to add to cart. See console for details.');
+    }
+  };
+
   return (
-    <div className="border rounded p-2 shadow hover:shadow-lg transition-transform duration-150 hover:scale-105 active:scale-95 max-w-xs">
-      {image && (
-        <img
-          src={image}
-          alt={name}
-          className="h-28 w-full object-cover mb-2 rounded"
-        />
-      )}
-      <h2 className="font-semibold">{name}</h2>
-      <p className="text-orange-500 font-semibold">${price.toFixed(2)}</p>
-      {description && <p className="text-sm line-clamp-2">{description}</p>}
-      <div className="flex gap-2 mt-2">
-        <Link href={`/seller/dashboard/manage/update/${id}`}>
-          <button className="flex-1 px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 active:scale-95 transition-transform duration-150">
-            Edit
-          </button>
-        </Link>
+    <li className="border rounded-lg p-3 flex flex-col hover:shadow-lg transition transform hover:scale-105">
+      <Link href={`/product/${product.id}`} className="flex-1">
+        <div className="relative w-full h-60 rounded-lg bg-gray-100 mb-2">
+          {product.image ? (
+            <Image
+              src={product.image}
+              alt={product.name}
+              fill
+              className="object-contain rounded"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+            />
+          ) : (
+            <div className="flex items-center justify-center h-full text-gray-400">
+              No Image
+            </div>
+          )}
+        </div>
+
+        <h3 className="font-semibold text-lg mb-1">{product.name}</h3>
+        {sellerName && <p className="text-sm text-gray-500 mb-1">{sellerName}</p>}
+        <p className="font-bold text-orange-500">${product.price}</p>
+      </Link>
+
+      {showAddToCart && (
         <button
-          onClick={() => alert(`Delete ${name}`)}
-          className="flex-1 px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600 active:scale-95 transition-transform duration-150"
+          onClick={handleAdd}
+          className={`mt-2 px-2 py-1 rounded w-full transition transform ${
+            added
+              ? 'bg-green-700 text-white scale-105'
+              : 'bg-orange-500 text-white hover:bg-orange-600 hover:scale-105'
+          }`}
         >
-          Delete
+          {added ? 'Added ✓' : 'Add to Cart'}
         </button>
-      </div>
-    </div>
+      )}
+
+      {children && <div className="mt-2 flex gap-2">{children}</div>}
+    </li>
   );
 }
