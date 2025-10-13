@@ -1,4 +1,3 @@
-// src/app/context/CartContext.tsx
 "use client";
 
 import React, { createContext, useContext, useEffect, useState } from "react";
@@ -18,7 +17,7 @@ export type CartContextValue = {
   items: CartItem[];
   totalItems: number;
   totalPrice: number;
-  isAuthenticated: boolean | null; // null = not yet checked
+  isAuthenticated: boolean | null;
   loadCart: () => Promise<void>;
   addItem: (item: AddItemInput) => Promise<void>;
   removeItem: (id: string) => Promise<void>;
@@ -40,11 +39,9 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
-  // --- Derived values ---
   const totalItems = items.reduce((sum, it) => sum + it.quantity, 0);
   const totalPrice = items.reduce((sum, it) => sum + it.price * it.quantity, 0);
 
-  // --- Initialization ---
   useEffect(() => {
     async function init() {
       try {
@@ -91,7 +88,6 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     else loadLocalCart();
   };
 
-  // --- Migrate local guest cart to server ---
   const migrateLocalCartToServer = async () => {
     if (typeof window === "undefined") return;
     const stored = localStorage.getItem("cart_local");
@@ -108,14 +104,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ productId: li.productId, quantity: li.quantity }),
         });
-      } catch (e) {
-        console.warn("Failed to migrate local cart item", li, e);
+      } catch (err) {
+        console.warn("Failed to migrate local cart item", li, err);
       }
     }
     localStorage.removeItem("cart_local");
   };
 
-  // --- Local add helper ---
   const addItemLocal = async (productId: string, quantity: number, opts?: Partial<CartItem>) => {
     const stored = typeof window !== "undefined" ? localStorage.getItem("cart_local") : null;
     const cur: CartItem[] = stored ? JSON.parse(stored) : [];
@@ -134,14 +129,12 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
     setItems(cur);
   };
 
-  // --- Public actions ---
   const addItem = async (item: AddItemInput) => {
     const productId = item.productId ?? item.id;
     const quantity = Math.max(1, item.quantity || 1);
     if (!productId) throw new Error("addItem requires productId");
 
     if (isAuthenticated === null) {
-      // optimistic guest add
       const cur = [...items];
       const existing = cur.find((i) => i.productId === productId);
       if (existing) existing.quantity += quantity;
@@ -158,16 +151,13 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ productId, quantity }),
         });
-
         if (!res.ok) {
           const j = await res.json().catch(() => ({}));
           if (res.status === 401) setIsAuthenticated(false);
           throw new Error(j?.error || "Add item failed");
         }
-
         await loadCartFromServer();
-      } catch (err) {
-        console.error("Add item error:", err);
+      } catch {
         await addItemLocal(productId, quantity);
       }
     } else {
@@ -178,7 +168,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const removeItem = async (id: string) => {
     if (isAuthenticated) {
       try {
-        const res = await fetch(`/api/cart/remove?id=${encodeURIComponent(id)}`, { method: "POST", credentials: "include" });
+        const res = await fetch(`/api/cart/remove?id=${encodeURIComponent(id)}`, {
+          method: "POST",
+          credentials: "include",
+        });
         if (res.status === 401) setIsAuthenticated(false);
         await loadCartFromServer();
       } catch (err) {
@@ -194,7 +187,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const increment = async (id: string) => {
     if (isAuthenticated) {
       try {
-        const res = await fetch(`/api/cart/increment?id=${encodeURIComponent(id)}`, { method: "POST", credentials: "include" });
+        const res = await fetch(`/api/cart/increment?id=${encodeURIComponent(id)}`, {
+          method: "POST",
+          credentials: "include",
+        });
         if (res.status === 401) setIsAuthenticated(false);
         await loadCartFromServer();
       } catch (err) {
@@ -210,7 +206,10 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const decrement = async (id: string) => {
     if (isAuthenticated) {
       try {
-        const res = await fetch(`/api/cart/decrement?id=${encodeURIComponent(id)}`, { method: "POST", credentials: "include" });
+        const res = await fetch(`/api/cart/decrement?id=${encodeURIComponent(id)}`, {
+          method: "POST",
+          credentials: "include",
+        });
         if (res.status === 401) setIsAuthenticated(false);
         await loadCartFromServer();
       } catch (err) {

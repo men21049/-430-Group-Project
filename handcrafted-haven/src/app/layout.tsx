@@ -6,8 +6,8 @@ import { CartProvider } from "@/app/context/CartContext";
 import CartDrawer from "@/app/ui/CartDrawer";
 import CartButton from "@/app/ui/CartButton";
 import Link from "next/link";
-import React, { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import React, { useState, useEffect, useTransition } from "react";
+import { usePathname, useRouter } from "next/navigation";
 import Cookies from "js-cookie";
 import LoadingSpinner from "@/app/ui/loading-spinner";
 
@@ -81,29 +81,28 @@ function HeaderBar({ onOpenCart }: { onOpenCart: () => void }) {
 // 🔹 Page Loader
 // =======================
 function PageLoader() {
-  const router = useRouter();
+  const pathname = usePathname();
   const [loading, setLoading] = useState(false);
+  const [isPending, startTransition] = useTransition();
 
   useEffect(() => {
-    const start = () => setLoading(true);
-    const stop = () => setLoading(false);
+    let timer: NodeJS.Timeout;
 
-    router.events?.on("routeChangeStart", start);
-    router.events?.on("routeChangeComplete", stop);
-    router.events?.on("routeChangeError", stop);
+    startTransition(() => {
+      setLoading(true);
+      timer = setTimeout(() => setLoading(false), 300); // simulate small delay
+    });
 
-    return () => {
-      router.events?.off("routeChangeStart", start);
-      router.events?.off("routeChangeComplete", stop);
-      router.events?.off("routeChangeError", stop);
-    };
-  }, [router]);
+    return () => clearTimeout(timer);
+  }, [pathname, startTransition]);
 
-  return loading ? (
+  if (!loading && !isPending) return null;
+
+  return (
     <div className="fixed top-0 left-0 w-full h-full flex items-center justify-center bg-white/70 z-50">
       <LoadingSpinner text="Loading page..." />
     </div>
-  ) : null;
+  );
 }
 
 // =======================

@@ -1,38 +1,36 @@
-// src/app/api/cart/add/route.ts
 import { NextResponse } from "next/server";
 import prisma from "@/prisma/client";
-import { getCurrentUserFromHeaders } from "@/lib/auth";
+import { getCurrentUserFromHeaders, CurrentUserPayload } from "@/lib/auth";
 
-/**
- * POST /api/cart/add
- * body: { productId: string, quantity?: number }
- *
- * Returns 200 with created/updated cart item shape, or a descriptive JSON error.
- */
+interface AddCartBody {
+  productId: string;
+  quantity?: number;
+}
+
 export async function POST(request: Request) {
   try {
-    // parse user from headers/cookies
-    const user = getCurrentUserFromHeaders(request.headers as any);
+    // Parse user from headers/cookies
+    const user: CurrentUserPayload | null = getCurrentUserFromHeaders(request.headers);
     if (!user || !(user.userId || user.email)) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    // parse body safely
-    let body: any = null;
+    // Parse body safely
+    let body: AddCartBody;
     try {
       body = await request.json();
-    } catch (e) {
+    } catch {
       return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
     }
 
-    const productId = typeof body?.productId === "string" ? body.productId.trim() : "";
+    const productId = body?.productId?.trim() ?? "";
     const quantity = Math.max(1, Number(body?.quantity || 1));
 
     if (!productId) {
       return NextResponse.json({ error: "Missing productId in request body" }, { status: 400 });
     }
 
-    // resolve userId from payload or email lookup
+    // Resolve userId from payload or email lookup
     let uid = user.userId;
     if (!uid && user.email) {
       const dbUser = await prisma.user.findUnique({ where: { email: user.email } });
@@ -42,13 +40,13 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    // verify product exists
+    // Verify product exists
     const product = await prisma.product.findUnique({ where: { id: productId } });
     if (!product) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
 
-    // upsert cart item
+    // Upsert cart item
     const existing = await prisma.cartItem.findFirst({
       where: { userId: uid, productId },
     });
