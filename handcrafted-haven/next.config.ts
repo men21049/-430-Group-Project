@@ -1,7 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // ✅ Explicitly set the workspace root to the app’s folder
+  turbopack: {
+    root: __dirname,
+  },
+
   images: {
     remotePatterns: [
       {
@@ -11,7 +15,7 @@ const nextConfig: NextConfig = {
         pathname: "/img/**",
       },
     ],
-  }
+  },
 };
 
 export default nextConfig;
