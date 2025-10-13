@@ -1,3 +1,4 @@
+// src/app/ui/landing-page/categories.tsx
 import {
   PaintBrushIcon,
   HomeModernIcon,
@@ -7,8 +8,14 @@ import {
   TagIcon,
 } from "@heroicons/react/16/solid";
 import Link from "next/link";
+import prisma from "@/prisma/client";
 
-const categories = [
+interface Category {
+  name: string;
+  icon: any;
+}
+
+const allCategories: Category[] = [
   { name: "Jewellery", icon: ShoppingBagIcon },
   { name: "Art", icon: PaintBrushIcon },
   { name: "Home", icon: HomeModernIcon },
@@ -17,28 +24,36 @@ const categories = [
   { name: "Tendency", icon: StarIcon },
 ];
 
-export default function Categories({ sellerId }: { sellerId?: string }) {
+export default async function Categories() {
+  // Fetch distinct categories from products table
+  const productCategories = await prisma.product.findMany({
+    select: { category: true },
+    distinct: ["category"],
+  });
+
+  const availableCategories = allCategories.filter((cat) =>
+    productCategories.some(
+      (p) => p.category?.toLowerCase() === cat.name.toLowerCase()
+    )
+  );
+
+  if (availableCategories.length === 0) return null; // hide if no products
+
   return (
-    <div className="my-4">
-      <h2 className="text-2xl font-bold text-center my-4">Our Categories</h2>
-      <ul className="flex flex-row flex-wrap justify-center gap-4 p-4">
-        {categories.map((category) => (
+    <section className="my-10">
+      <h2 className="text-2xl font-bold text-center mb-6">Our Categories</h2>
+      <div className="flex flex-wrap justify-center gap-4 p-4">
+        {availableCategories.map((category) => (
           <Link
             key={category.name}
-            href={
-              sellerId
-                ? `/shop/${sellerId}/${category.name.toLowerCase()}`
-                : `/shop/${category.name.toLowerCase()}`
-            }
+            href={`/shop/category/${category.name.toLowerCase()}`}
+            className="flex items-center gap-3 bg-gray-50 hover:bg-amber-100 p-3 rounded-2xl shadow-sm transition-colors duration-200"
           >
-            <li className="flex flex-row items-center gap-3 bg-gray-50 hover:bg-gray-200 transition-colors duration-200 ease-in-out p-2 rounded-2xl">
-              <category.icon className="w-5 h-5 cursor-pointer" />
-              {category.name}
-            </li>
+            <category.icon className="w-5 h-5 text-amber-600" />
+            <span className="text-gray-700 font-medium">{category.name}</span>
           </Link>
         ))}
-      </ul>
-    </div>
+      </div>
+    </section>
   );
 }
-

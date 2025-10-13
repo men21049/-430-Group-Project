@@ -4,7 +4,6 @@
 import { Bars3Icon, XMarkIcon } from "@heroicons/react/24/outline";
 import { useState, useEffect } from "react";
 import clsx from "clsx";
-import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 
 type AuthUser = {
@@ -20,10 +19,12 @@ export default function NavigationBar() {
   const pathname = usePathname();
   const router = useRouter();
 
+  // Prevent scrolling when sidenav is open
   useEffect(() => {
     document.body.style.overflow = isOpen ? "hidden" : "auto";
   }, [isOpen]);
 
+  // Fetch current user
   useEffect(() => {
     let mounted = true;
     const controller = new AbortController();
@@ -47,7 +48,7 @@ export default function NavigationBar() {
         } else if (mounted) {
           setUser(null);
         }
-      } catch (err) {
+      } catch {
         if (mounted) setUser(null);
       } finally {
         if (mounted) setLoading(false);
@@ -114,17 +115,29 @@ export default function NavigationBar() {
         <nav className="w-full flex flex-col gap-2">
           <button onClick={() => handleLinkClick("/shop")} className={linkClass(pathname === "/shop")}>Shop</button>
 
-          <button onClick={() => handleLinkClick(productsHref)} className={linkClass(pathname?.startsWith("/seller") || pathname?.startsWith("/shop"))}>
+          <button
+            onClick={() => handleLinkClick(productsHref)}
+            className={linkClass(pathname?.startsWith("/seller") || pathname?.startsWith("/shop"))}
+          >
             {role === "SELLER" || role === "ADMIN" ? "My Products" : "Products"}
           </button>
 
-          <button onClick={() => handleLinkClick(dashboardHref)} className={linkClass(pathname?.startsWith("/seller") || pathname?.startsWith("/admin"))}>
+          <button
+            onClick={() => handleLinkClick(dashboardHref)}
+            className={linkClass(pathname?.startsWith("/seller") || pathname?.startsWith("/admin"))}
+          >
             Dashboard
           </button>
 
-          <button onClick={() => handleLinkClick(ordersHref)} className={linkClass(pathname?.includes("/orders"))}>
-            Orders
-          </button>
+          {/* Only show Orders for SELLER or ADMIN */}
+          {(role === "SELLER" || role === "ADMIN") && (
+            <button
+              onClick={() => handleLinkClick(ordersHref)}
+              className={linkClass(pathname?.includes("/orders"))}
+            >
+              Orders
+            </button>
+          )}
 
           <button onClick={() => handleLinkClick("/cart")} className={linkClass(pathname === "/cart")}>Cart</button>
 
@@ -147,9 +160,7 @@ export default function NavigationBar() {
           )}
         </nav>
 
-        {/* small spacer to push content up */}
         <div className="flex-1" />
-
         <div className="w-full text-sm text-gray-500 mt-4">
           {loading ? "Checking session…" : user ? `Signed in as ${user.name}` : "Not signed in"}
         </div>
