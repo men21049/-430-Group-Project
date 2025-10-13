@@ -4,10 +4,10 @@ import prisma from "@/prisma/client";
 
 export async function GET(
   req: Request,
-  { params }: { params: { orderId: string } }
+  context: { params: { orderId: string } }
 ) {
   try {
-    const orderId = params.orderId;
+    const orderId = context.params.orderId;
 
     // Fetch order with customer info and items
     const order = await prisma.order.findUnique({
