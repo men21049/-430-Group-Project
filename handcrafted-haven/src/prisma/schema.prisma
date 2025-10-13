@@ -1,3 +1,5 @@
+// src/prisma/schema.prisma
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -8,40 +10,44 @@ datasource db {
 }
 
 model User {
-  id             String   @id @default(cuid())
-  name           String
-  email          String   @unique
-  password       String
-  role           Role     @default(CUSTOMER)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
-
-  sellerProfile   Seller?
+  id              String    @id @default(cuid())
+  name            String
+  email           String    @unique
+  password        String
+  role            Role      @default(CUSTOMER)
+  isAdmin         Boolean   @default(false) // optional admin flag
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
   customerProfile Customer?
+  sellerProfile   Seller?
 
-  @@map("user") // maps to lowercase PostgreSQL table
+  cartItems CartItem[]    // back-relation to CartItem
+
+  @@map("user")
 }
 
 model Seller {
-  id        String   @id @default(cuid())
+  id        String    @id @default(cuid())
   shopName  String
   bio       String?
   logo      String?
   banner    String?
-  user      User     @relation(fields: [userId], references: [id])
-  userId    String   @unique
+  userId    String    @unique
+  createdAt DateTime  @default(now())
   products  Product[]
-  createdAt DateTime @default(now())
+  user      User      @relation(fields: [userId], references: [id])
 
   @@map("seller")
 }
 
 model Customer {
   id        String   @id @default(cuid())
-  user      User     @relation(fields: [userId], references: [id])
   userId    String   @unique
   address   String?
   createdAt DateTime @default(now())
+  user      User     @relation(fields: [userId], references: [id])
+
+  orders Order[] // relation to orders
 
   @@map("customer")
 }
@@ -53,15 +59,61 @@ model Product {
   description String?
   image       String?
   category    String?
-  seller      Seller   @relation(fields: [sellerId], references: [id])
   sellerId    String
   createdAt   DateTime @default(now())
+  stock       Int?     // optional stock/inventory field
+  seller      Seller   @relation(fields: [sellerId], references: [id])
+
+  orderItems OrderItem[] // relation to order items
+  cartItems  CartItem[]  // back-relation to CartItem
 
   @@map("product")
+}
+
+model Order {
+  id         String      @id @default(cuid())
+  customerId String
+  createdAt  DateTime    @default(now())
+  status     OrderStatus @default(PENDING)
+  total      Float
+
+  customer Customer    @relation(fields: [customerId], references: [id])
+  items    OrderItem[]
+}
+
+model OrderItem {
+  id        String @id @default(cuid())
+  orderId   String
+  productId String
+  quantity  Int    @default(1)
+  price     Float // price at time of order
+
+  order   Order   @relation(fields: [orderId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+}
+
+model CartItem {
+  id        String   @id @default(cuid())
+  userId    String
+  productId String
+  quantity  Int      @default(1)
+  createdAt DateTime @default(now())
+
+  user    User    @relation(fields: [userId], references: [id])
+  product Product @relation(fields: [productId], references: [id])
+
+  @@unique([userId, productId])
 }
 
 enum Role {
   CUSTOMER
   SELLER
   ADMIN
+}
+
+enum OrderStatus {
+  PENDING
+  COMPLETED
+  CANCELLED
+  PAID // added so you can mark orders as paid without TS errors
 }

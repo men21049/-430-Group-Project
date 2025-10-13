@@ -3,10 +3,11 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Header from "@/app/ui/landing-page/header";
-import Footer from "@/app/ui/footer";
-import CallToAction from "@/app/ui/landing-page/cta-section";
 
-export default function AddProductPage() {
+import CallToAction from "@/app/ui/landing-page/cta-section";
+import WithAuth from "@/app/components/withAuth";
+
+function AddProductForm() {
   const router = useRouter();
 
   const [name, setName] = useState("");
@@ -14,7 +15,9 @@ export default function AddProductPage() {
   const [category, setCategory] = useState("");
   const [image, setImage] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
-  const [status, setStatus] = useState<"idle" | "adding" | "success" | "error">("idle");
+  const [status, setStatus] = useState<"idle" | "adding" | "success" | "error">(
+    "idle"
+  );
   const [serverError, setServerError] = useState<string | null>(null);
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -26,7 +29,6 @@ export default function AddProductPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
     setServerError(null);
 
     if (!name || !price || !category || !image) {
@@ -51,12 +53,9 @@ export default function AddProductPage() {
 
       if (res.ok) {
         setStatus("success");
-        // short delay to show success
         setTimeout(() => router.push("/seller/products"), 900);
       } else {
         const text = await res.text();
-        console.error("Upload failed:", text);
-        // try to parse JSON error
         try {
           const json = JSON.parse(text);
           setServerError(json?.error || text);
@@ -66,7 +65,6 @@ export default function AddProductPage() {
         setStatus("error");
       }
     } catch (err: any) {
-      console.error("Add product error:", err);
       setServerError(err?.message || String(err));
       setStatus("error");
     }
@@ -86,11 +84,15 @@ export default function AddProductPage() {
   };
 
   return (
-    <div>
+    <>
       <Header />
       <div className="max-w-3xl mx-auto p-6">
         <h1 className="text-3xl font-bold mb-6">Add New Product</h1>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4" encType="multipart/form-data">
+        <form
+          onSubmit={handleSubmit}
+          className="flex flex-col gap-4"
+          encType="multipart/form-data"
+        >
           <input
             type="text"
             placeholder="Product Name"
@@ -116,7 +118,13 @@ export default function AddProductPage() {
             className="border p-2 rounded"
             required
           />
-          <input type="file" accept="image/*" onChange={handleImageChange} className="border p-2 rounded" required />
+          <input
+            type="file"
+            accept="image/*"
+            onChange={handleImageChange}
+            className="border p-2 rounded"
+            required
+          />
           {preview && (
             <img
               src={preview}
@@ -124,13 +132,11 @@ export default function AddProductPage() {
               className="w-40 h-40 object-cover rounded border"
             />
           )}
-
           {serverError && <p className="text-red-600 text-sm">{serverError}</p>}
-
           <button
             type="submit"
             disabled={status === "adding" || status === "success"}
-            className={`px-4 py-2 text-white rounded transition transform hover:scale-105 active:scale-95 
+            className={`px-4 py-2 text-white rounded transition transform hover:scale-105 active:scale-95
               ${
                 status === "adding"
                   ? "bg-gray-500 cursor-not-allowed"
@@ -146,7 +152,14 @@ export default function AddProductPage() {
         </form>
       </div>
       <CallToAction />
-      <Footer />
-    </div>
+    </>
+  );
+}
+
+export default function AddProductPage() {
+  return (
+    <WithAuth role="SELLER">
+      <AddProductForm />
+    </WithAuth>
   );
 }

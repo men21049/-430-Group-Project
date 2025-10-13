@@ -38,7 +38,7 @@ export default function SignupForm({ role }: SignupProps) {
       } else {
         setMessage("✅ Signup successful! Logging in...");
 
-        // Save token, role and userId
+        // ✅ Save cookies for auth and cart
         if (data.token) Cookies.set("token", data.token, { expires: 1 });
         if (data.role) Cookies.set("role", data.role);
         if (data.userId) Cookies.set("userId", data.userId);
@@ -58,7 +58,6 @@ export default function SignupForm({ role }: SignupProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
-      {/* Name */}
       <input
         type="text"
         placeholder="Full Name"
@@ -68,7 +67,6 @@ export default function SignupForm({ role }: SignupProps) {
         className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-[#9d5c63] focus:outline-none"
       />
 
-      {/* Email */}
       <input
         type="email"
         placeholder="Email"
@@ -78,7 +76,6 @@ export default function SignupForm({ role }: SignupProps) {
         className="w-full px-4 py-2 border rounded-md focus:ring-2 focus:ring-[#9d5c63] focus:outline-none"
       />
 
-      {/* Password */}
       <PasswordInput
         name="password"
         value={password}
@@ -86,7 +83,6 @@ export default function SignupForm({ role }: SignupProps) {
         placeholder="Password"
       />
 
-      {/* Seller extra fields */}
       {role === "SELLER" && (
         <>
           <input
@@ -105,7 +101,6 @@ export default function SignupForm({ role }: SignupProps) {
         </>
       )}
 
-      {/* Submit */}
       <button
         type="submit"
         disabled={loading}

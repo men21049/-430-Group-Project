@@ -2,12 +2,13 @@
 
 import { useState, useEffect } from "react";
 import Header from "@/app/ui/landing-page/header";
-import Footer from "@/app/ui/footer";
+
 import CallToAction from "@/app/ui/landing-page/cta-section";
 import Image from "next/image";
 import { getSellerInfo } from "@/app/lib/data";
+import WithAuth from "@/app/components/withAuth";
 
-export default function SellerProfilePage() {
+function SellerProfileContent() {
   const [seller, setSeller] = useState({
     name: "",
     logo: "",
@@ -17,7 +18,7 @@ export default function SellerProfilePage() {
 
   useEffect(() => {
     async function loadSeller() {
-      // Replace with actual logged-in seller ID (cookie or token later)
+      // Replace with actual logged-in seller ID from cookie or token
       const info = await getSellerInfo("seller1");
       setSeller(info);
     }
@@ -27,7 +28,6 @@ export default function SellerProfilePage() {
   return (
     <div>
       <Header />
-
       <div className="max-w-5xl mx-auto p-6">
         <h1 className="text-3xl font-bold mb-6 text-center">My Profile</h1>
 
@@ -66,9 +66,15 @@ export default function SellerProfilePage() {
           </div>
         </div>
       </div>
-
       <CallToAction />
-      <Footer />
     </div>
+  );
+}
+
+export default function SellerProfilePage() {
+  return (
+    <WithAuth role="SELLER">
+      <SellerProfileContent />
+    </WithAuth>
   );
 }

@@ -32,12 +32,13 @@ export default function LoginForm() {
       } else {
         setMessage("✅ Login successful!");
 
-        // Save cookies
+        // Save cookies for auth and cart
         Cookies.set("token", data.token || "dummy-token", { expires: 1 });
         Cookies.set("role", data.user.role);
         Cookies.set("name", data.user.name);
+        Cookies.set("userId", data.user.id); // ✅ crucial for checkout
 
-        // ✅ Redirect based on role
+        // Redirect based on role
         switch (data.user.role) {
           case "SELLER":
             router.push("/seller/dashboard");
@@ -50,6 +51,7 @@ export default function LoginForm() {
         }
       }
     } catch (err) {
+      console.error("Login error:", err);
       setMessage("⚠️ Network or server error");
     } finally {
       setLoading(false);
@@ -91,7 +93,6 @@ export default function LoginForm() {
 
         {message && <p className="text-center text-sm text-gray-700 mt-2">{message}</p>}
 
-        {/* ✅ Sign up links */}
         <div className="text-center mt-4 space-x-2 text-sm">
           <span>Don't have an account?</span>
           <Link href="/signup/customer" className="text-[#9d5c63] hover:underline">

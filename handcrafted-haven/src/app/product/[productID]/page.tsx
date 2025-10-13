@@ -1,7 +1,6 @@
-import Header from '@/app/ui/landing-page/header';
-import Footer from '@/app/ui/footer';
-import { PrismaClient } from '@prisma/client';
-import { notFound } from 'next/navigation';
+import Header from "@/app/ui/landing-page/header";
+import { PrismaClient } from "@prisma/client";
+import Image from "next/image";
 
 const prisma = new PrismaClient();
 
@@ -26,26 +25,25 @@ export default async function ProductPage({ params }: ProductPageProps) {
         <div className="max-w-7xl mx-auto p-4">
           <p>Product not found.</p>
         </div>
-        <Footer />
       </div>
     );
   }
 
-  const imageSrc = product.image
-    ? `/artisans/${product.image}` // path to uploaded image in public/artisans
-    : '/artisans/fallback.jpg'; // fallback image
-
   return (
     <div>
       <Header />
-      <div className="max-w-4xl mx-auto p-4">
-        <img
-          src={imageSrc}
+      <div className="w-full max-w-4xl mx-auto p-4">
+        <Image
+          src={product.image || "/artisans/fallback.jpg"}
           alt={product.name}
-          className="w-full h-auto mb-4 rounded-lg object-cover"
+          width={250}
+          height={250}
+          className="rounded-lg object-cover"
         />
         <h1 className="text-3xl font-bold mb-2">{product.name}</h1>
-        <p className="text-xl font-semibold mb-2">${product.price.toFixed(2)}</p>
+        <p className="text-xl font-semibold mb-2">
+          ${product.price.toFixed(2)}
+        </p>
         {product.category && (
           <p className="text-gray-500 mb-4">Category: {product.category}</p>
         )}
@@ -54,7 +52,6 @@ export default async function ProductPage({ params }: ProductPageProps) {
           Add to Cart
         </button>
       </div>
-      <Footer />
     </div>
   );
 }
