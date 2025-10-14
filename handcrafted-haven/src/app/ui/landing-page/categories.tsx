@@ -1,3 +1,4 @@
+// src/app/ui/landing-page/categories.tsx
 import {
   PaintBrushIcon,
   HomeModernIcon,
@@ -6,33 +7,34 @@ import {
   StarIcon,
   TagIcon,
 } from "@heroicons/react/16/solid";
+import { Category } from "@/app/lib/definitions";
 import Link from "next/link";
 
-const categories = [
-  { name: "Jewellery", icon: ShoppingBagIcon },
-  { name: "Art", icon: PaintBrushIcon },
-  { name: "Home", icon: HomeModernIcon },
-  { name: "Clothing", icon: TagIcon },
-  { name: "Modern", icon: RectangleGroupIcon },
-  { name: "Tendency", icon: StarIcon },
-];
 
-export default function Categories(){
-    return(
-        <div className="my-4">
-        <h2 className="text-2xl font-bold text-center my-4">Our Categories</h2>
-        <ul className="flex flex-row flex-wrap justify-center  gap-4 p-4 ">
-          {categories.map((category) => (
-            <Link key={category.name} href={`/category/${category.name}`}>
-              <li
-                className="flex flex-row items-center gap-3 bg-gray-50 hover:bg-gray-200 transition-colors duration-200 ease-in-out p-2 rounded-2xl"
-              >
-                <category.icon className="w-5 h-5 cursor-pointer" />
-                {category.name}
-              </li>
-            </Link>
-          ))}
-        </ul>
+const categoryNames = ["Jewellery", "Art", "Home", "Clothing", "Modern", "Tendency"];
+const categoryIcons = [ShoppingBagIcon, PaintBrushIcon, HomeModernIcon, TagIcon, RectangleGroupIcon, StarIcon];
+
+const allCategories: Category[] = categoryNames.map((name, index) => ({
+  name,
+  icon: categoryIcons[index]
+}));
+
+export default function Categories() {
+  return (
+    <section className="my-10">
+      <h2 className="text-2xl font-bold text-center mb-6">Our Categories</h2>
+      <div className="flex flex-wrap justify-center gap-4 p-4">
+        {allCategories.map((category) => (
+          <Link
+            key={category.name}
+            href={`/shop/category/${category.name.toLowerCase()}`}
+            className="flex items-center gap-3 bg-gray-50 hover:bg-amber-100 p-3 rounded-2xl shadow-sm transition-colors duration-200"
+          >
+            <category.icon className="w-5 h-5 text-amber-600" />
+            <span className="text-gray-700 font-medium">{category.name}</span>
+          </Link>
+        ))}
       </div>
-    )
+    </section>
+  );
 }
