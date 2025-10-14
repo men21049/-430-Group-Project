@@ -9,7 +9,7 @@ export type Product = {
     category: string,
     seller_id: number,
     image_path: string
-    }
+}
 
 export type Category ={
     category: string

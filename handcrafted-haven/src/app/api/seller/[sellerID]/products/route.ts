@@ -1,12 +1,12 @@
 // src/app/api/seller/[sellerID]/products/route.ts
-import { NextResponse } from "next/server";
+import { NextRequest, NextResponse } from "next/server";
 import { getAllSellerProducts } from "@/app/lib/data";
 
-export async function GET(_: Request, { params }: { params: { sellerID: string } }) {
+export async function GET(_: NextRequest, context: { params: Promise<{ sellerID: string }> }) {
   try {
-    const { sellerID } = params;
+    const { sellerID } = await context.params;
     // Optional: if you want a query param for category, extract it:
-    // const url = new URL(request.url); const category = url.searchParams.get('category') ?? undefined;
+    // const url = new URL(_.url); const category = url.searchParams.get('category') ?? undefined;
     const products = await getAllSellerProducts(sellerID);
     return NextResponse.json(products);
   } catch (error: any) {

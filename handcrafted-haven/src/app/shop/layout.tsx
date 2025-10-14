@@ -1,3 +1,7 @@
+﻿// src/app/shop/layout.tsx
+// Keep this a simple layout — DO NOT re-wrap with CartProvider here.
+// This file should NOT create a new CartProvider instance.
+
 import React from "react";
 import Header from "@/app/ui/landing-page/header";
 import CallToAction from "@/app/ui/landing-page/cta-section";

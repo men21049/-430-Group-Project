@@ -1,13 +1,30 @@
-﻿'use client';
+// src/app/shop/seller/profile/page.tsx
+'use client';
 
-import { useState, useEffect } from "react";
-import Header from "@/app/ui/landing-page/header";
-
-import CallToAction from "@/app/ui/landing-page/cta-section";
+import React, { useState, useEffect } from "react";
+import dynamic from "next/dynamic";
 import Image from "next/image";
 import { getSellerInfo } from "@/app/lib/data";
 import WithAuth from "@/app/components/withAuth";
+import type { ComponentType } from "react";
 
+// Dynamically import UI components to prevent SSR errors — ensure we return the default export as a ComponentType
+const Header = dynamic(
+  () => import("@/app/ui/landing-page/header").then((mod) => mod.default as ComponentType<any>),
+  { ssr: false }
+);
+
+const Footer = dynamic(
+  () => import("@/app/ui/footer").then((mod) => mod.default as ComponentType<any>),
+  { ssr: false }
+);
+
+const CallToAction = dynamic(
+  () => import("@/app/ui/landing-page/cta-section").then((mod) => mod.default as ComponentType<any>),
+  { ssr: false }
+);
+
+// --- rest of the file unchanged ---
 function SellerProfilePageContent() {
   const [seller, setSeller] = useState({
     name: "",
@@ -20,7 +37,7 @@ function SellerProfilePageContent() {
   useEffect(() => {
     async function loadSeller() {
       try {
-        // Later, replace with logged-in seller ID from token or cookies
+        // Replace with logged-in seller ID from token/cookie in production
         const info = await getSellerInfo("seller1");
         setSeller(info);
       } catch (err) {
@@ -72,9 +89,7 @@ function SellerProfilePageContent() {
           )}
 
           <div className="flex-1">
-            <h2 className="text-2xl font-semibold mb-2">
-              {seller.name || "Unnamed Seller"}
-            </h2>
+            <h2 className="text-2xl font-semibold mb-2">{seller.name || "Unnamed Seller"}</h2>
             <p className="text-gray-600 mb-4">
               {seller.bio || "No bio provided yet."}
             </p>
@@ -90,6 +105,7 @@ function SellerProfilePageContent() {
       </div>
 
       <CallToAction />
+      <Footer />
     </div>
   );
 }

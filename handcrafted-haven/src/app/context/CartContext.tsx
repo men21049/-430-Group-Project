@@ -1,9 +1,10 @@
+// handcrafted-haven\src\app\context\CartContext.tsx
 "use client";
 
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useEffect, useState, useCallback } from "react";
 
 export type CartItem = {
-  id: string; // cartItem id or generated local id
+  id: string;
   productId?: string;
   name: string;
   price: number;
@@ -24,7 +25,6 @@ export type CartContextValue = {
   increment: (id: string) => Promise<void>;
   decrement: (id: string) => Promise<void>;
   clearCart: () => Promise<void>;
-  checkout: () => Promise<{ ok: boolean; orderId?: string; error?: string }>;
 };
 
 const CartContext = createContext<CartContextValue | undefined>(undefined);
@@ -39,234 +39,279 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   const [items, setItems] = useState<CartItem[]>([]);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
-  const totalItems = items.reduce((sum, it) => sum + it.quantity, 0);
-  const totalPrice = items.reduce((sum, it) => sum + it.price * it.quantity, 0);
+  const totalItems = items.reduce((sum, i) => sum + i.quantity, 0);
+  const totalPrice = items.reduce((sum, i) => sum + i.quantity * i.price, 0);
 
+  // --- local storage load (safe parse)
+  const loadLocalCart = useCallback(() => {
+    if (typeof window === "undefined") return;
+    try {
+      const stored = localStorage.getItem("cart_local");
+      if (!stored) {
+        setItems([]);
+        return;
+      }
+      const parsed = JSON.parse(stored) as CartItem[] | null;
+      if (Array.isArray(parsed)) setItems(parsed);
+      else setItems([]);
+    } catch (err) {
+      console.error("Failed to parse local cart:", err);
+      setItems([]);
+    }
+  }, []);
+
+  // --- server cart loader
+  const loadCartFromServer = useCallback(async () => {
+    try {
+      const res = await fetch("/api/cart", { credentials: "include" });
+      if (!res.ok) {
+        // preserve existing client state if unauthorized, otherwise clear
+        if (res.status === 401) {
+          setItems([]);
+          return;
+        }
+        setItems([]);
+        return;
+      }
+      const data = await res.json();
+      setItems(Array.isArray(data.items) ? data.items : []);
+    } catch (err) {
+      console.error("loadCartFromServer error:", err);
+      setItems([]);
+    }
+  }, []);
+
+  const loadCart = useCallback(async () => {
+    if (isAuthenticated) {
+      await loadCartFromServer();
+    } else {
+      loadLocalCart();
+    }
+  }, [isAuthenticated, loadCartFromServer, loadLocalCart]);
+
+  // --- detect auth on mount
   useEffect(() => {
     async function init() {
       try {
         const res = await fetch("/api/auth/me", { credentials: "include" });
         if (res.ok) {
           setIsAuthenticated(true);
-          await migrateLocalCartToServer();
           await loadCartFromServer();
         } else {
           setIsAuthenticated(false);
           loadLocalCart();
         }
-      } catch {
+      } catch (err) {
+        console.error("auth check failed:", err);
         setIsAuthenticated(false);
         loadLocalCart();
       }
     }
     init();
+    // We intentionally do not include loadCartFromServer/loadLocalCart in deps to only run once at mount.
+    // They are stable via useCallback above.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const loadLocalCart = () => {
-    const stored = typeof window !== "undefined" ? localStorage.getItem("cart_local") : null;
-    setItems(stored ? JSON.parse(stored) : []);
-  };
-
-  const loadCartFromServer = async () => {
-    try {
-      const res = await fetch("/api/cart", { credentials: "include" });
-      if (!res.ok) {
-        if (res.status === 401) setIsAuthenticated(false);
-        setItems([]);
-        return;
-      }
-      const data = await res.json();
-      setItems(data.items || []);
-    } catch (err) {
-      console.error("Failed to load server cart:", err);
-      setItems([]);
-    }
-  };
-
-  const loadCart = async () => {
-    if (isAuthenticated) await loadCartFromServer();
-    else loadLocalCart();
-  };
-
-  const migrateLocalCartToServer = async () => {
-    if (typeof window === "undefined") return;
-    const stored = localStorage.getItem("cart_local");
-    if (!stored) return;
-    const localItems: CartItem[] = JSON.parse(stored);
-    if (!Array.isArray(localItems) || localItems.length === 0) return;
-
-    for (const li of localItems) {
-      if (!li.productId) continue;
+  // Persist local cart whenever items change *and* user is a guest
+  useEffect(() => {
+    if (isAuthenticated === false && typeof window !== "undefined") {
       try {
-        await fetch("/api/cart/add", {
+        localStorage.setItem("cart_local", JSON.stringify(items));
+      } catch (err) {
+        console.error("Failed saving local cart:", err);
+      }
+    }
+  }, [items, isAuthenticated]);
+
+  // helper to update local guest items functionally + persist
+  const saveLocal = (updater: (prev: CartItem[]) => CartItem[] | CartItem[]) => {
+    setItems((prev) => {
+      const next = typeof updater === "function" ? (updater as (p: CartItem[]) => CartItem[])(prev) : updater;
+      try {
+        localStorage.setItem("cart_local", JSON.stringify(next));
+      } catch (err) {
+        console.error("Failed to write cart_local:", err);
+      }
+      return next;
+    });
+  };
+
+  // update item: unified handler
+  const updateItem = async (id: string, action: "increment" | "decrement" | "remove") => {
+    if (isAuthenticated) {
+      // optimistic local update for faster UI
+      setItems((prev) =>
+        prev.map((it) => {
+          if (it.id !== id) return it;
+          if (action === "increment") return { ...it, quantity: it.quantity + 1 };
+          if (action === "decrement") return { ...it, quantity: Math.max(1, it.quantity - 1) };
+          // remove: filter later by returning same (we'll remove after)
+          return it;
+        })
+      );
+      if (action === "remove") {
+        setItems((prev) => prev.filter((it) => it.id !== id));
+      }
+
+      const urlMap: Record<string, string> = {
+        increment: "/api/cart/increment",
+        decrement: "/api/cart/decrement",
+        remove: "/api/cart/remove",
+      };
+
+      try {
+        const res = await fetch(`${urlMap[action]}?id=${encodeURIComponent(id)}`, {
           method: "POST",
           credentials: "include",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ productId: li.productId, quantity: li.quantity }),
         });
+        if (!res.ok) {
+          // server failed — re-sync from server
+          await loadCartFromServer();
+        } else {
+          // success — optionally reconcile using server GET (usually unnecessary)
+          // but to keep consistent with server truth, fetch once:
+          await loadCartFromServer();
+        }
       } catch (err) {
-        console.warn("Failed to migrate local cart item", li, err);
+        console.error("updateItem (server) error:", err);
+        await loadCartFromServer();
       }
-    }
-    localStorage.removeItem("cart_local");
-  };
-
-  const addItemLocal = async (productId: string, quantity: number, opts?: Partial<CartItem>) => {
-    const stored = typeof window !== "undefined" ? localStorage.getItem("cart_local") : null;
-    const cur: CartItem[] = stored ? JSON.parse(stored) : [];
-    const existing = cur.find((c) => c.productId === productId);
-    if (existing) existing.quantity += quantity;
-    else
-      cur.push({
-        id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
-        productId,
-        name: opts?.name ?? "Product",
-        price: opts?.price ?? 0,
-        quantity,
-        image: opts?.image ?? null,
+    } else {
+      // guest flow — functional update + persist
+      saveLocal((prev) => {
+        const cur = [...prev];
+        const idx = cur.findIndex((i) => i.id === id);
+        if (idx === -1) return cur;
+        if (action === "increment") cur[idx] = { ...cur[idx], quantity: cur[idx].quantity + 1 };
+        if (action === "decrement") cur[idx] = { ...cur[idx], quantity: Math.max(1, cur[idx].quantity - 1) };
+        if (action === "remove") cur.splice(idx, 1);
+        return cur;
       });
-    localStorage.setItem("cart_local", JSON.stringify(cur));
-    setItems(cur);
+    }
   };
 
+  const increment = async (id: string) => updateItem(id, "increment");
+  const decrement = async (id: string) => updateItem(id, "decrement");
+  const removeItem = async (id: string) => updateItem(id, "remove");
+
+  // add item
   const addItem = async (item: AddItemInput) => {
     const productId = item.productId ?? item.id;
-    const quantity = Math.max(1, item.quantity || 1);
-    if (!productId) throw new Error("addItem requires productId");
-
-    if (isAuthenticated === null) {
-      const cur = [...items];
-      const existing = cur.find((i) => i.productId === productId);
-      if (existing) existing.quantity += quantity;
-      else cur.push({ id: `${Date.now()}-${Math.random()}`, productId, name: "Product", price: 0, quantity });
-      setItems(cur);
-      return;
-    }
+    const quantity = Math.max(1, item.quantity ?? 1);
+    if (!productId) return;
 
     if (isAuthenticated) {
       try {
         const res = await fetch("/api/cart/add", {
           method: "POST",
-          credentials: "include",
           headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify({ productId, quantity }),
         });
         if (!res.ok) {
-          const j = await res.json().catch(() => ({}));
-          if (res.status === 401) setIsAuthenticated(false);
-          throw new Error(j?.error || "Add item failed");
+          console.error("Failed to add item (server)", await res.text());
+          await loadCartFromServer();
+          return;
         }
-        await loadCartFromServer();
-      } catch {
-        await addItemLocal(productId, quantity);
-      }
-    } else {
-      await addItemLocal(productId, quantity);
-    }
-  };
-
-  const removeItem = async (id: string) => {
-    if (isAuthenticated) {
-      try {
-        const res = await fetch(`/api/cart/remove?id=${encodeURIComponent(id)}`, {
-          method: "POST",
-          credentials: "include",
-        });
-        if (res.status === 401) setIsAuthenticated(false);
-        await loadCartFromServer();
+        const data = await res.json();
+        // server returns the created/updated item in `item`
+        const serverItem = data?.item;
+        if (serverItem) {
+          setItems((prev) => {
+            // if existing item (by id), replace; if same product exists, replace that
+            const existingIdx = prev.findIndex((p) => p.productId === serverItem.productId || p.id === serverItem.id);
+            if (existingIdx !== -1) {
+              const next = [...prev];
+              next[existingIdx] = {
+                id: serverItem.id,
+                productId: serverItem.productId,
+                name: serverItem.name,
+                price: serverItem.price,
+                quantity: serverItem.quantity,
+                image: serverItem.image ?? null,
+              };
+              return next;
+            }
+            // add
+            return [
+              ...prev,
+              {
+                id: serverItem.id,
+                productId: serverItem.productId,
+                name: serverItem.name,
+                price: serverItem.price,
+                quantity: serverItem.quantity,
+                image: serverItem.image ?? null,
+              },
+            ];
+          });
+        } else {
+          // fallback: reload
+          await loadCartFromServer();
+        }
       } catch (err) {
-        console.error("Remove failed:", err);
-      }
-    } else {
-      const cur = items.filter((i) => i.id !== id);
-      setItems(cur);
-      localStorage.setItem("cart_local", JSON.stringify(cur));
-    }
-  };
-
-  const increment = async (id: string) => {
-    if (isAuthenticated) {
-      try {
-        const res = await fetch(`/api/cart/increment?id=${encodeURIComponent(id)}`, {
-          method: "POST",
-          credentials: "include",
-        });
-        if (res.status === 401) setIsAuthenticated(false);
+        console.error("addItem server error:", err);
         await loadCartFromServer();
-      } catch (err) {
-        console.error("Increment failed:", err);
       }
     } else {
-      const cur = items.map((i) => (i.id === id ? { ...i, quantity: i.quantity + 1 } : i));
-      setItems(cur);
-      localStorage.setItem("cart_local", JSON.stringify(cur));
-    }
-  };
-
-  const decrement = async (id: string) => {
-    if (isAuthenticated) {
-      try {
-        const res = await fetch(`/api/cart/decrement?id=${encodeURIComponent(id)}`, {
-          method: "POST",
-          credentials: "include",
-        });
-        if (res.status === 401) setIsAuthenticated(false);
-        await loadCartFromServer();
-      } catch (err) {
-        console.error("Decrement failed:", err);
-      }
-    } else {
-      const cur = items.map((i) => (i.id === id ? { ...i, quantity: Math.max(1, i.quantity - 1) } : i));
-      setItems(cur);
-      localStorage.setItem("cart_local", JSON.stringify(cur));
+      // guest: functional update + persist
+      saveLocal((prev) => {
+        const cur = [...prev];
+        const existing = cur.find((i) => i.productId === productId);
+        if (existing) {
+          existing.quantity += quantity;
+          return cur;
+        }
+        const newItem: CartItem = {
+          id: `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+          productId,
+          name: "Product",
+          price: 0,
+          quantity,
+          image: null,
+        };
+        cur.push(newItem);
+        return cur;
+      });
     }
   };
 
   const clearCart = async () => {
     if (isAuthenticated) {
+      // immediate clear for UI feedback
+      setItems([]);
       try {
-        await fetch("/api/cart/clear", { method: "POST", credentials: "include" });
-        setItems([]);
-      } catch {
-        setItems([]);
+        const res = await fetch("/api/cart/clear", { method: "POST", credentials: "include" });
+        if (!res.ok) {
+          console.error("Failed to clear server cart:", await res.text());
+          await loadCartFromServer();
+        }
+      } catch (err) {
+        console.error("clearCart error:", err);
+        await loadCartFromServer();
       }
     } else {
-      setItems([]);
-      localStorage.removeItem("cart_local");
+      saveLocal(() => []);
     }
   };
 
-  const checkout = async (): Promise<{ ok: boolean; orderId?: string; error?: string }> => {
-    if (!isAuthenticated) return { ok: false, error: "Not authenticated" };
-    try {
-      const res = await fetch("/api/checkout", { method: "POST", credentials: "include" });
-      if (!res.ok) {
-        const json = await res.json().catch(() => ({}));
-        if (res.status === 401) setIsAuthenticated(false);
-        return { ok: false, error: json?.error || "Checkout failed" };
-      }
-      const json = await res.json();
-      await loadCartFromServer();
-      return { ok: true, orderId: json.orderId };
-    } catch (err: any) {
-      console.error("Checkout error:", err);
-      return { ok: false, error: String(err?.message ?? err) };
-    }
-  };
-
-  const value: CartContextValue = {
-    items,
-    totalItems,
-    totalPrice,
-    isAuthenticated,
-    loadCart,
-    addItem,
-    removeItem,
-    increment,
-    decrement,
-    clearCart,
-    checkout,
-  };
-
-  return <CartContext.Provider value={value}>{children}</CartContext.Provider>;
+  return (
+    <CartContext.Provider
+      value={{
+        items,
+        totalItems,
+        totalPrice,
+        isAuthenticated,
+        loadCart,
+        addItem,
+        removeItem,
+        increment,
+        decrement,
+        clearCart,
+      }}
+    >
+      {children}
+    </CartContext.Provider>
+  );
 }

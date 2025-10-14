@@ -1,3 +1,4 @@
+// src/app/ui/landing-page/featured-products.tsx
 import Link from "next/link";
 import Image from "next/image";
 import { Product } from "@/app/lib/definitions";
@@ -39,11 +40,7 @@ export default async function FeaturedProducts() {
                   {product.description && (
                     <p className="text-sm text-gray-600">{product.description}</p>
                   )}
-                  <p className="font-bold text-lg">
-                    {product.price !== null && product.price !== undefined
-                      ? `$${product.price}`
-                      : "Price not set"}
-                  </p>
+                  <p className="font-bold text-lg">${product.price}</p>
                 </div>
               </Link>
               <div className="mt-auto">

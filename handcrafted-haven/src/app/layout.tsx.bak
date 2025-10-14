@@ -1,9 +1,8 @@
-﻿// src/app/layout.tsx
 "use client";
 
 import "@/app/ui/global.css";
 import { inter } from "@/app/ui/fonts";
-import { CartProvider, useCart } from "@/app/context/CartContext";
+import { CartProvider } from "@/app/context/CartContext";
 import CartDrawer from "@/app/ui/CartDrawer";
 import CartButton from "@/app/ui/CartButton";
 import Link from "next/link";
@@ -16,18 +15,20 @@ import LoadingSpinner from "@/app/ui/loading-spinner";
 // 🔹 Header Component
 // =======================
 function HeaderBar({ onOpenCart }: { onOpenCart: () => void }) {
-  const { isAuthenticated } = useCart();
-  const [role, setRole] = React.useState<string | null>(null);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [role, setRole] = useState<string | null>(null);
   const router = useRouter();
 
   useEffect(() => {
+    const token = Cookies.get("token");
     const storedRole = Cookies.get("role");
+    setIsAuthenticated(!!token);
     setRole(storedRole || null);
   }, []);
 
   const handleCartClick = () => {
-    // allow guests to open the cart so local cart is visible
-    onOpenCart();
+    if (isAuthenticated) onOpenCart();
+    else router.push("/login");
   };
 
   const handleOrdersClick = (e: React.MouseEvent) => {
@@ -37,11 +38,11 @@ function HeaderBar({ onOpenCart }: { onOpenCart: () => void }) {
     const normalizedRole = role?.toUpperCase();
     if (normalizedRole === "SELLER") router.push("/seller/orders");
     else if (normalizedRole === "ADMIN") router.push("/admin/orders");
-    // customers do not see Orders link (handled in JSX)
+    // Customers do not see Orders — do nothing
   };
 
   return (
-    <header className="w-full border-b bg-white/90 backdrop-blur-sm sticky top-0 z-100">
+    <header className="w-full border-b bg-white/80 backdrop-blur-sm sticky top-0 z-40">
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
         <div className="flex items-center gap-6">
           <Link href="/" className="text-xl font-bold">
@@ -66,7 +67,10 @@ function HeaderBar({ onOpenCart }: { onOpenCart: () => void }) {
         </div>
 
         <div className="flex items-center gap-3">
-          <CartButton onClick={handleCartClick} />
+          <CartButton
+            onClick={handleCartClick}
+            disabled={isAuthenticated !== true}
+          />
         </div>
       </div>
     </header>
@@ -86,7 +90,7 @@ function PageLoader() {
 
     startTransition(() => {
       setLoading(true);
-      timer = setTimeout(() => setLoading(false), 300);
+      timer = setTimeout(() => setLoading(false), 300); // simulate small delay
     });
 
     return () => clearTimeout(timer);
@@ -121,6 +125,7 @@ export default function RootLayout({
 
           <CartDrawer open={cartOpen} onClose={() => setCartOpen(false)} />
 
+          {/* ✅ Single Global Footer */}
           <footer className="border-t mt-12 py-6 text-center text-sm text-gray-600 bg-gray-50">
             © {new Date().getFullYear()} Handcrafted Haven. All rights reserved.
           </footer>

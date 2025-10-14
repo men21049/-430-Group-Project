@@ -1,9 +1,9 @@
 // src/app/account/page.tsx
 import WithAuth from "@/app/components/withAuth";
 import CustomerDashboard from "@/app/customer/dashboard/page";
-import SellerDashboard from "@/app/shop/seller/dashboard/page";
+import SellerDashboard from "@/app/seller/dashboard/page";
 
-// Minimal placeholder for admin
+// Placeholder Admin Dashboard
 function AdminDashboard() {
   return (
     <div className="max-w-4xl mx-auto p-4 text-center">
@@ -14,9 +14,7 @@ function AdminDashboard() {
 }
 
 // Mock function to get current user
-// Replace this with your real auth fetching logic
 async function getCurrentUser() {
-  // Example: fetch("/api/auth/me").then(res => res.json())
   return {
     id: "123",
     name: "John Doe",
@@ -31,7 +29,7 @@ export default async function AccountPageWrapper() {
     return <p className="text-center py-20">Please log in to view your account.</p>;
   }
 
-  let DashboardComponent;
+  let DashboardComponent; // <-- remove JSX.Element annotation
   switch (user.role) {
     case "CUSTOMER":
       DashboardComponent = <CustomerDashboard />;
@@ -51,6 +49,7 @@ export default async function AccountPageWrapper() {
   return <div className="min-h-screen flex flex-col">{DashboardComponent}</div>;
 }
 
+// Wrap with authentication
 export function Account() {
   return (
     <WithAuth>

@@ -7,7 +7,7 @@ export default function Hero() {
   const router = useRouter();
 
   const handleShopNow = () => {
-    router.push("/products"); // 👉 change this route if needed
+    router.push("/shop"); // ✅ updated from /products → /shop
   };
 
   return (

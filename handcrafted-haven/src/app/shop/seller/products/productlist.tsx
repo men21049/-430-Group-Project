@@ -2,8 +2,17 @@
 import Image from "next/image";
 import Link from "next/link";
 import prisma from "@/prisma/client";
-import { getCurrentUser } from "@/lib/auth";
 import WithAuth from "@/app/components/withAuth";
+
+// Temporary local getCurrentUser function
+async function getCurrentUser() {
+  // Replace with your actual authentication logic later
+  return {
+    id: "123", // Mock user ID
+    name: "John Doe",
+    role: "SELLER",
+  };
+}
 
 async function ProductsListContent() {
   const user = await getCurrentUser();
