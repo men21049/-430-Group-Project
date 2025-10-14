@@ -9,7 +9,7 @@ type ProductCardProps = {
   id: string;
   name: string;
   price: number;
-  image?: string;
+  image_path?: string;
   sellerName?: string;
   showAddToCart?: boolean;
   children?: React.ReactNode; // For seller buttons like Edit/Delete
@@ -19,7 +19,7 @@ export default function ProductCard({
   id,
   name,
   price,
-  image,
+  image_path,
   sellerName,
   showAddToCart = true,
   children,
@@ -45,9 +45,9 @@ export default function ProductCard({
     <li className="border rounded-lg p-3 flex flex-col hover:shadow-lg transition transform hover:scale-105">
       <Link href={`/product/${id}`} className="flex-1">
         <div className="relative w-full h-60 rounded-lg bg-gray-100 mb-2">
-          {image ? (
+          {image_path ? (
             <Image
-              src={image}
+              src={image_path}
               alt={name}
               fill
               className="object-contain rounded"

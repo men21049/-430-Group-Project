@@ -1,7 +1,7 @@
 // src/app/api/auth/me/route.ts
 import { NextResponse } from "next/server";
 import { getCurrentUserFromRequest } from "@/lib/auth";
-import prisma from "@/prisma/client";
+
 
 /**
  * Returns the current user payload (decoded JWT) and minimal DB user info.

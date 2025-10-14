@@ -3,10 +3,14 @@ export type Product = {
     product_name: string,
     price: number,
     cost:number,
+    isactive:boolean,
     stock:number, 
     description: string,
-    seller_id: number,
     category: string,
-    image: string
+    seller_id: number,
+    image_path: string
     }
 
+export type Category ={
+    category: string
+}

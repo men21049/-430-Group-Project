@@ -1,8 +1,6 @@
 // src/app/shop/category/[categoryName]/page.tsx
-import prisma from '@/prisma/client';
 import ProductCard from '@/app/shop/ProductCard';
-import Header from '@/app/ui/landing-page/header';
-import Footer from '@/app/ui/footer';
+import { getProductsFromDB } from "@/app/lib/data";
 import Link from 'next/link';
 
 interface CategoryPageProps {
@@ -10,14 +8,19 @@ interface CategoryPageProps {
 }
 
 export default async function CategoryPage({ params }: CategoryPageProps) {
-  const { categoryName } = params;
+  const resolvedParams = await params;
+  const { categoryName } = resolvedParams;
 
   // Fetch all products in this category (all sellers)
-  const products = await prisma.product.findMany({
-    where: { category: { equals: categoryName, mode: 'insensitive' } },
-    include: { seller: true },
-    orderBy: { createdAt: 'desc' },
-  });
+  const products = await getProductsFromDB();
+  
+  // Normalize category names for comparison (case-insensitive)
+  const normalizedCategoryName = categoryName.charAt(0).toUpperCase() + categoryName.slice(1).toLowerCase();
+  const filteredProducts = products.filter((product) => 
+    product.category?.toLowerCase() === categoryName.toLowerCase()
+  );
+  
+
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -25,34 +28,32 @@ export default async function CategoryPage({ params }: CategoryPageProps) {
       {/* Category Banner */}
       <section className="relative bg-gradient-to-r from-amber-200 to-orange-100 py-12 mb-6 text-center">
         <h1 className="text-4xl font-bold capitalize text-gray-800">
-          {categoryName} Collection
+          {normalizedCategoryName} Collection
         </h1>
         <p className="text-gray-600 mt-2">
-          Discover handcrafted {categoryName.toLowerCase()} products from all our sellers.
+          Discover handcrafted {normalizedCategoryName.toLowerCase()} products from all our sellers.
         </p>
       </section>
 
       {/* Products Grid */}
       <main className="flex-1 max-w-7xl mx-auto w-full px-4 pb-10">
-        {products.length > 0 ? (
+        {filteredProducts.length > 0 ? (
           <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {products.map((product) => (
-              <li key={product.id}>
+            {filteredProducts.map((product) => (
+              <li key={product.product_id}>
                 <ProductCard
-                  id={product.id}
-                  name={product.name}
-                  price={product.price}
-                  image={product.image ?? '/artisans/amin-ybW2t0bEqm0-unsplash.jpg'}
-                  sellerName={product.seller?.shopName ?? 'Unknown Seller'}
+                  id={product.product_id.toString()}
+                  name={product.product_name}
+                  price={Number(product.price)}
+                  image_path={product.image_path ?? '/artisans/amin-ybW2t0bEqm0-unsplash.jpg'}
                   showAddToCart={true}
                 />
                 <p className="text-sm text-gray-500 mt-1 text-center">
                   Sold by{' '}
                   <Link
-                    href={`/shop/${product.sellerId}`}
+                    href={`/shop/${product.seller_id}`}
                     className="text-blue-600 hover:underline"
                   >
-                    {product.seller?.shopName ?? 'Unknown Seller'}
                   </Link>
                 </p>
               </li>

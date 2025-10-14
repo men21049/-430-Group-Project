@@ -1,30 +1,29 @@
 import Link from "next/link";
 import Image from "next/image";
-import prisma from "@/app/lib/prisma"; // default Prisma client
 import { Product } from "@/app/lib/definitions";
+import { getProductsFromDB } from "@/app/lib/data";
+import AddToCartButton from "@/app/ui/AddToCartButton";
 
 export default async function FeaturedProducts() {
-  // Fetch products from DB
-  let products: Product[] = await prisma.product.findMany({
-    take: 10, // max 10 products
-  });
-
-  // Randomize order
-  products = products.sort(() => Math.random() - 0.5);
-
+  
+  // Obtener productos desde la base de datos
+  const allProducts = await getProductsFromDB();
+  
+  // Tomar los primeros 8 productos como destacados
+  const products = allProducts.slice(0, 8);
   return (
     <div>
       <h2 className="text-3xl font-bold text-center my-6">Featured Products</h2>
       <div className="flex flex-row items-center justify-center max-w-[1200px] mx-auto">
         <ul className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 p-4">
           {products.map((product: Product) => (
-            <Link key={product.id} href={`/product/${product.id}`}>
-              <li className="flex flex-col h-full gap-4 m-2 bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-300">
+            <li key={product.product_id} className="flex flex-col h-full gap-4 m-2 bg-white p-4 rounded-lg shadow hover:shadow-lg transition-shadow duration-300">
+              <Link href={`/product/${product.product_id}`} className="flex flex-col h-full">
                 <span className="relative w-full h-40 rounded-lg bg-gray-100">
-                  {product.image ? (
+                  {product.image_path ? (
                     <Image
-                      src={product.image}
-                      alt={product.name || "Product Image"}
+                      src={product.image_path}
+                      alt={product.product_name || "Product Image"}
                       fill
                       className="object-contain"
                       sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
@@ -35,8 +34,8 @@ export default async function FeaturedProducts() {
                     </div>
                   )}
                 </span>
-                <div className="break-words">
-                  <h3 className="text-lg font-semibold">{product.name || "Untitled Product"}</h3>
+                <div className="break-words flex-grow">
+                  <h3 className="text-lg font-semibold">{product.product_name || "Untitled Product"}</h3>
                   {product.description && (
                     <p className="text-sm text-gray-600">{product.description}</p>
                   )}
@@ -46,9 +45,12 @@ export default async function FeaturedProducts() {
                       : "Price not set"}
                   </p>
                 </div>
-              </li>
-            </Link>
-          ))}
+              </Link>
+              <div className="mt-auto">
+                <AddToCartButton product={product} size="small" />
+              </div>
+            </li>
+          ))} 
         </ul>
       </div>
     </div>

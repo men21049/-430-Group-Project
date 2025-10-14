@@ -7,43 +7,24 @@ import {
   StarIcon,
   TagIcon,
 } from "@heroicons/react/16/solid";
+import { Category } from "@/app/lib/definitions";
 import Link from "next/link";
-import prisma from "@/prisma/client";
 
-interface Category {
-  name: string;
-  icon: any;
-}
 
-const allCategories: Category[] = [
-  { name: "Jewellery", icon: ShoppingBagIcon },
-  { name: "Art", icon: PaintBrushIcon },
-  { name: "Home", icon: HomeModernIcon },
-  { name: "Clothing", icon: TagIcon },
-  { name: "Modern", icon: RectangleGroupIcon },
-  { name: "Tendency", icon: StarIcon },
-];
+const categoryNames = ["Jewellery", "Art", "Home", "Clothing", "Modern", "Tendency"];
+const categoryIcons = [ShoppingBagIcon, PaintBrushIcon, HomeModernIcon, TagIcon, RectangleGroupIcon, StarIcon];
 
-export default async function Categories() {
-  // Fetch distinct categories from products table
-  const productCategories = await prisma.product.findMany({
-    select: { category: true },
-    distinct: ["category"],
-  });
+const allCategories: Category[] = categoryNames.map((name, index) => ({
+  name,
+  icon: categoryIcons[index]
+}));
 
-  const availableCategories = allCategories.filter((cat) =>
-    productCategories.some(
-      (p) => p.category?.toLowerCase() === cat.name.toLowerCase()
-    )
-  );
-
-  if (availableCategories.length === 0) return null; // hide if no products
-
+export default function Categories() {
   return (
     <section className="my-10">
       <h2 className="text-2xl font-bold text-center mb-6">Our Categories</h2>
       <div className="flex flex-wrap justify-center gap-4 p-4">
-        {availableCategories.map((category) => (
+        {allCategories.map((category) => (
           <Link
             key={category.name}
             href={`/shop/category/${category.name.toLowerCase()}`}

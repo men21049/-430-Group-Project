@@ -1,16 +1,16 @@
-// src/app/shop/page.tsx
+// src/app/products/page.tsx
 import Link from "next/link";
 import Image from "next/image";
 import { Product } from "@/app/lib/definitions";
 import { getProductsFromDB } from "@/app/lib/data";
 import AddToCartButton from "@/app/ui/AddToCartButton";
 
-export default async function ShopPage() {
+export default async function ProductsPage() {
   const products = await getProductsFromDB();
   
   return (
     <div className="max-w-7xl mx-auto p-4">
-      <h1 className="text-2xl font-bold mb-6 text-center">Shop All Products</h1>
+      <h1 className="text-2xl font-bold mb-6 text-center">All Products</h1>
 
       {products.length === 0 ? (
         <p className="text-center text-gray-600 py-20">
