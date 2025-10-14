@@ -1,7 +1,10 @@
-import Header from '@/app/ui/landing-page/header';
+
 import Footer from '@/app/ui/footer';
-import { PrismaClient } from '@prisma/client';
 import { notFound } from 'next/navigation';
+import Header from "@/app/ui/landing-page/header";
+import { PrismaClient } from "@prisma/client";
+import Image from "next/image";
+import { useCart } from "@/app/context/CartContext";
 
 const prisma = new PrismaClient();
 
@@ -12,6 +15,9 @@ interface ProductPageProps {
 }
 
 export default async function ProductPage({ params }: ProductPageProps) {
+
+  const { addItem } = useCart();
+
   const product = await prisma.product.findUnique({
     where: { id: params.productId },
     include: {
@@ -34,6 +40,15 @@ export default async function ProductPage({ params }: ProductPageProps) {
   const imageSrc = product.image
     ? `/artisans/${product.image}` // path to uploaded image in public/artisans
     : '/artisans/fallback.jpg'; // fallback image
+  const handleAddToCart = async (e: React.MouseEvent) => {
+
+    try {
+      e.preventDefault();
+      await addItem({ productId: product.id, quantity: 1 });
+    } catch (err) {
+      console.error("Failed to add to cart:", err);
+    }
+  };
 
   return (
     <div>
@@ -50,7 +65,7 @@ export default async function ProductPage({ params }: ProductPageProps) {
           <p className="text-gray-500 mb-4">Category: {product.category}</p>
         )}
         {product.description && <p className="mb-4">{product.description}</p>}
-        <button className="py-2 px-4 bg-[#FF8C42] text-white rounded-lg hover:bg-[#584b53] transition">
+        <button onClick={handleAddToCart} className="py-2 px-4 bg-[#FF8C42] text-white rounded-lg hover:bg-[#584b53] transition">
           Add to Cart
         </button>
       </div>
