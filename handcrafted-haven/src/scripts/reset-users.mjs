@@ -1,28 +1,32 @@
 // src/scripts/reset-users.mjs
-import prisma from "../prisma/client.js"; // <- points to src/prisma/client.ts compiled to JS
+import postgres from "postgres";
+
+const connectDB = postgres(process.env.DATABASE_URL, {
+  ssl: "require",
+});
 
 async function main() {
   console.log("Deleting all users...");
-  await prisma.user.deleteMany({});
+  await connectDB`DELETE FROM users`;
   console.log("All users deleted.");
 
   // Optionally, create a test user
-  const newUser = await prisma.user.create({
-    data: {
-      name: "Test Seller",
-      email: "seller@example.com",
-      password: "password123",
-      role: "SELLER",
-      sellerProfile: {
-        create: {
-          shopName: "Test Shop",
-          bio: "This is a test shop",
-        },
-      },
-    },
-  });
+  const bcrypt = await import("bcrypt");
+  const hashedPassword = await bcrypt.hash("password123", 10);
+  
+  const newUser = await connectDB`
+    INSERT INTO users (name, email, password, role, insert_dt, update_dt)
+    VALUES ('Test Seller', 'seller@example.com', ${hashedPassword}, 'SELLER', NOW(), NOW())
+    RETURNING *
+  `;
 
-  console.log("Created new user + seller:", newUser);
+  // Create seller profile
+  await connectDB`
+    INSERT INTO sellers (seller_name, insert_dt, update_dt)
+    VALUES ('Test Shop', NOW(), NOW())
+  `;
+
+  console.log("Created new user + seller:", newUser[0]);
 }
 
 main()
@@ -31,5 +35,5 @@ main()
     process.exit(1);
   })
   .finally(async () => {
-    await prisma.$disconnect();
+    await connectDB.end();
   });

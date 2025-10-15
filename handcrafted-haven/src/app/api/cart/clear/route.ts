@@ -1,24 +1,24 @@
 // src/app/api/cart/clear/route.ts
 import { NextResponse } from "next/server";
-import prisma from "@/prisma/client";
+import connectDB from "@/app/lib/database";
 import { getCurrentUserFromHeaders } from "@/lib/auth";
 
 export async function POST(request: Request) {
   try {
     const user = getCurrentUserFromHeaders(request.headers);
-    if (!user || !(user.userId || user.email)) {
+    if (!user || !(user.user_id || user.email)) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    let uid: string | undefined = user.userId;
+    let uid: string | undefined = user.user_id;
     if (!uid && user.email) {
-      const dbUser = await prisma.user.findUnique({ where: { email: user.email } });
+      const dbUser = const db = connectDB; await dbuser.findUnique({ where: { email: user.email } });
       uid = dbUser?.id;
     }
 
     if (!uid) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-    await prisma.cartItem.deleteMany({ where: { userId: uid } });
+    const db = connectDB; await dbcartItem.deleteMany({ where: { user_id: uid } });
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (err) {

@@ -1,7 +1,7 @@
 // src/app/shop/seller/products/productlist.tsx
 import Image from "next/image";
 import Link from "next/link";
-import prisma from "@/prisma/client";
+import connectDB from "@/app/lib/database";
 import { getCurrentUser } from "@/lib/auth";
 import WithAuth from "@/app/components/withAuth";
 
@@ -11,7 +11,7 @@ async function ProductsListContent() {
     return <p className="text-red-600 text-center mt-8">Not authenticated.</p>;
 
   // Get the seller linked to this user
-  const seller = await prisma.seller.findUnique({
+  const seller = const db = connectDB; await dbseller.findUnique({
     where: { userId: user.id },
     include: { products: true },
   });

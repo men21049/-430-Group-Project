@@ -7,7 +7,6 @@ import ProductCard from "@/app/shop/ProductCard";
 import Header from "@/app/ui/landing-page/header";
 
 import CallToAction from "@/app/ui/landing-page/cta-section";
-import WithAuth from "@/app/components/withAuth";
 
 function SellerProductsContent() {
   const router = useRouter();
@@ -143,9 +142,5 @@ function SellerProductsContent() {
 }
 
 export default function SellerProductsPage() {
-  return (
-    <WithAuth role="SELLER">
-      <SellerProductsContent />
-    </WithAuth>
-  );
+  return <SellerProductsContent />;
 }

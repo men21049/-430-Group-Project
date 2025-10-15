@@ -34,10 +34,16 @@ export default function SignUpSellerPage() {
     setMessage("");
 
     try {
-      const res = await fetch("/api/signup", {
+      const res = await fetch("/api/signup/seller", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, role: "SELLER" }),
+        body: JSON.stringify({ 
+          name: form.name, 
+          email: form.email, 
+          password: form.password, 
+          shopName: form.shopName, 
+          bio: form.bio 
+        }),
       });
 
       const data = await res.json();
@@ -45,14 +51,30 @@ export default function SignUpSellerPage() {
       if (!res.ok) {
         setMessage(data.error || "Signup failed");
       } else {
-        // Save JWT and user info in cookies
-        Cookies.set("token", data.token, { expires: 1 });
-        Cookies.set("role", data.role);
-        if (data.userId) Cookies.set("userId", data.userId);
-        Cookies.set("name", data.name || form.name);
+        setMessage(data.message || "✅ Signup successful!");
 
-        setMessage("✅ Seller account created! Redirecting...");
-        router.push("/seller/dashboard");
+        // Handle redirection based on response
+        if (data.redirectTo === "/login") {
+          // Customer signup - redirect to success page
+          // Clear any existing cookies
+          Cookies.remove("token");
+          Cookies.remove("role");
+          Cookies.remove("userId");
+          Cookies.remove("name");
+          
+          // Redirect to success page
+          router.push("/signup/success");
+        } else if (data.token) {
+          // Seller signup - auto-login
+          // Save cookies for auth and cart
+          Cookies.set("token", data.token, { expires: 1 });
+          if (data.user.role) Cookies.set("role", data.user.role);
+          if (data.user.id) Cookies.set("userId", data.user.id);
+          Cookies.set("name", data.user.name);
+
+          // Redirect to seller dashboard
+          router.push("/seller/dashboard");
+        }
       }
     } catch (err) {
       console.error("Signup (seller) error:", err);

@@ -2,7 +2,7 @@
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
-import prisma from "@/prisma/client";
+import connectDB from "@/app/lib/database";
 import fs from "fs/promises";
 import path from "path";
 import { getCurrentUserFromRequest, isSellerOrAdmin, isAdmin } from "@/lib/auth";
@@ -16,7 +16,7 @@ export const config = {
 export async function POST(req: Request) {
   try {
     const user = getCurrentUserFromRequest(req);
-    if (!user?.userId) {
+    if (!user?.user_id) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
@@ -26,8 +26,8 @@ export async function POST(req: Request) {
 
     const formData = await req.formData();
 
-    // Admin may pass sellerId in form data
-    const explicitSellerId = String(formData.get("sellerId") || "").trim() || null;
+    // Admin may pass seller_id in form data
+    const explicitSellerId = String(formData.get("seller_id") || "").trim() || null;
 
     const name = String(formData.get("name") || "");
     const price = String(formData.get("price") || "");
@@ -39,11 +39,11 @@ export async function POST(req: Request) {
     // Resolve seller ID to associate the product with
     let targetSellerId: string | null = null;
     if (isAdmin(user) && explicitSellerId) {
-      const s = await prisma.seller.findUnique({ where: { id: explicitSellerId } });
+      const s = const db = connectDB; await dbseller.findUnique({ where: { id: explicitSellerId } });
       if (!s) return NextResponse.json({ error: "Specified seller not found" }, { status: 404 });
       targetSellerId = s.id;
     } else {
-      const seller = await prisma.seller.findUnique({ where: { userId: user.userId } });
+      const seller = const db = connectDB; await dbseller.findUnique({ where: { user_id: user.user_id } });
       if (!seller) return NextResponse.json({ error: "Seller not found" }, { status: 404 });
       targetSellerId = seller.id;
     }
@@ -62,13 +62,13 @@ export async function POST(req: Request) {
       imagePath = `/artisans/${fileName}`;
     }
 
-    const product = await prisma.product.create({
+    const product = const db = connectDB; await dbproduct.create({
       data: {
         name,
         price: parseFloat(price),
         category: category || null,
         image: imagePath,
-        sellerId: targetSellerId,
+        seller_id: targetSellerId,
       },
     });
 

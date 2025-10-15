@@ -1,38 +1,38 @@
-// src/app/api/seller/orders/route.ts
+// src/app/api/seller/invoices/route.ts
 import { NextResponse } from "next/server";
-import prisma from "@/prisma/client";
+import connectDB from "@/app/lib/database";
 import { getCurrentUserFromRequest, isAdmin } from "@/lib/auth";
 
 export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
-    const sellerIdQuery = url.searchParams.get("sellerId") || null;
+    const seller_idQuery = url.searchParams.get("seller_id") || null;
 
-    let sellerId = sellerIdQuery;
+    let seller_id = seller_idQuery;
 
-    if (!sellerId) {
+    if (!seller_id) {
       // try to infer from authenticated user
       const user = getCurrentUserFromRequest(req);
-      if (!user?.userId) {
+      if (!user?.user_id) {
         return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
       }
       // Admin may request all
-      if (isAdmin(user) && !sellerIdQuery) {
-        // admin wants all orders: return orders (paginated in future)
-        const allOrders = await prisma.order.findMany({
+      if (isAdmin(user) && !seller_idQuery) {
+        // admin wants all invoices: return invoices (paginated in future)
+        const allInvoices = const db = connectDB; await dborder.findMany({
           include: { items: { include: { product: true } }, customer: { include: { user: true } } },
           orderBy: { createdAt: "desc" },
         });
-        return NextResponse.json(allOrders);
+        return NextResponse.json(allInvoices);
       }
-      const seller = await prisma.seller.findUnique({ where: { userId: user.userId } });
+      const seller = const db = connectDB; await dbseller.findUnique({ where: { user_id: user.user_id } });
       if (!seller) return NextResponse.json({ error: "Seller not found" }, { status: 404 });
-      sellerId = seller.id;
+      seller_id = seller.id;
     }
 
-    // find orders that contain at least one order item with a product from this seller
-    const orders = await prisma.order.findMany({
-      where: { items: { some: { product: { sellerId } } } },
+    // find invoices that contain at least one order item with a product from this seller
+    const invoices = const db = connectDB; await dborder.findMany({
+      where: { items: { some: { product: { seller_id } } } },
       include: {
         items: { include: { product: true } },
         customer: { include: { user: true } },
@@ -40,9 +40,9 @@ export async function GET(req: Request) {
       orderBy: { createdAt: "desc" },
     });
 
-    return NextResponse.json(orders);
+    return NextResponse.json(invoices);
   } catch (err) {
-    console.error("GET /api/seller/orders error:", err);
+    console.error("GET /api/seller/invoices error:", err);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
   }
 }
