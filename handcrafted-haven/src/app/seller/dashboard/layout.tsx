@@ -4,7 +4,6 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Cookies from "js-cookie";
-import Navigation from './navigation';
 
 export default function Layout({children}: {children: React.ReactNode}) {
   const router = useRouter();
@@ -35,7 +34,6 @@ export default function Layout({children}: {children: React.ReactNode}) {
 
   return (
     <main className="pt-16">
-      <Navigation />
       {children}
     </main>
   );
