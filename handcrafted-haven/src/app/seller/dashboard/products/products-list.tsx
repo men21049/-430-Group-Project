@@ -2,10 +2,10 @@ import {getAllSellerProducts} from "../../../lib/data";
 import ToggleSwitch from "@/app/ui/dashboard/toggle-switch";
 import Image from "next/image";
 
-export default async function ProductsList() {
+export default async function ProductsList({id}: {id: string}) {
 
     //seller1 is the logged in seller, should be replaced with the actual logged in seller's ID
-    const products = await getAllSellerProducts("seller1");
+    const products = await getAllSellerProducts(id);
     console.log(products);
     return (
         <>
