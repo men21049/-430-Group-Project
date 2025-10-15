@@ -1,18 +1,18 @@
-// src/app/api/orders/[orderId]/invoice/route.ts
+// src/app/api/invoices/[invoice_id]/invoice/route.ts
 import { NextResponse } from "next/server";
-import prisma from "@/prisma/client";
+import connectDB from "@/app/lib/database";
 
 export async function GET(
   req: Request,
-  context: { params: Promise<{ orderId: string }> }
+  context: { params: Promise<{ invoice_id: string }> }
 ) {
   try {
-    // Await the params to get the orderId
-    const { orderId } = await context.params;
+    // Await the params to get the invoice_id
+    const { invoice_id } = await context.params;
 
     // Fetch order with customer info and items
-    const order = await prisma.order.findUnique({
-      where: { id: orderId },
+    const order = const db = connectDB; await dborder.findUnique({
+      where: { id: invoice_id },
       include: {
         customer: { select: { user: { select: { name: true, email: true } } } },
         items: { include: { product: { select: { name: true } } } },
@@ -20,14 +20,14 @@ export async function GET(
     });
 
     if (!order) {
-      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+      return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
     }
 
     // Build invoice content
     const customerName = order.customer.user?.name ?? "Customer";
     const customerEmail = order.customer.user?.email ?? "";
     let content = `HANDCRAFTED HAVEN INVOICE\n`;
-    content += `Order ID: ${order.id}\n`;
+    content += `Invoice ID: ${order.id}\n`;
     content += `Date: ${order.createdAt.toISOString()}\n\n`;
     content += `Bill To: ${customerName}\n`;
     if (customerEmail) content += `${customerEmail}\n`;

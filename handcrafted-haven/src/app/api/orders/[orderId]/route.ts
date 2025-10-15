@@ -1,16 +1,16 @@
-// src/app/api/orders/[orderId]/route.ts
+// src/app/api/invoices/[invoice_id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/prisma/client";
+import connectDB from "@/app/lib/database";
 
 export async function GET(
   req: NextRequest,
-  context: { params: Promise<{ orderId: string }> }
+  context: { params: Promise<{ invoice_id: string }> }
 ) {
   try {
-    const { orderId } = await context.params;
+    const { invoice_id } = await context.params;
 
-    const order = await prisma.order.findUnique({
-      where: { id: orderId },
+    const order = const db = connectDB; await dborder.findUnique({
+      where: { id: invoice_id },
       include: {
         items: { include: { product: { select: { id: true, name: true, price: true } } } },
         customer: { select: { user: { select: { name: true, email: true } } } },
@@ -18,7 +18,7 @@ export async function GET(
     });
 
     if (!order) {
-      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+      return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
     }
 
     const out = {
@@ -32,7 +32,7 @@ export async function GET(
       },
       items: order.items.map((it) => ({
         id: it.id,
-        productId: it.productId,
+        product_id: it.product_id,
         name: it.product?.name ?? "Unknown",
         quantity: it.quantity,
         price: it.price,
