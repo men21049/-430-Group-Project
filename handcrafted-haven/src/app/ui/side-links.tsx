@@ -1,22 +1,80 @@
-import { HomeIcon } from "@heroicons/react/24/outline";
-import Link from "next/link";
+"use client";
 
-//Add more links here!!! It automatically includes them to the sidebar
-const links = [{ name: "Home", href: "/", icon: HomeIcon }];
+import Link from "next/link";
+import { useState, useEffect } from "react";
+import Cookies from "js-cookie";
+import { useRouter } from "next/navigation";
+import {
+  HomeIcon,
+  UserIcon,
+  ShoppingBagIcon,
+  PlusCircleIcon,
+} from "@heroicons/react/24/outline";
+
+type NavLink = {
+  name: string;
+  href?: string;
+  icon?: React.ElementType;
+  onClick?: () => void;
+};
 
 export default function NavLinks() {
+  const router = useRouter();
+  const [role, setRole] = useState<string | null>(null);
+
+  useEffect(() => {
+    setRole(Cookies.get("role") || null);
+  }, []);
+
+  const handleLogout = () => {
+    Cookies.remove("token");
+    Cookies.remove("role");
+    Cookies.remove("name");
+    setRole(null);
+    router.push("/"); // redirect to landing page
+  };
+
+  const guestLinks: NavLink[] = [
+    { name: "Home", href: "/", icon: HomeIcon },
+    { name: "Login", href: "/login", icon: UserIcon },
+    { name: "Join", href: "/signup/customer", icon: UserIcon },
+  ];
+
+  const customerLinks: NavLink[] = [
+    { name: "Home", href: "/", icon: HomeIcon },
+    { name: "My Account", href: "/account", icon: UserIcon },
+    { name: "Shop Products", href: "/shop", icon: ShoppingBagIcon },
+    { name: "Logout", onClick: handleLogout },
+  ];
+
+  const sellerLinks: NavLink[] = [
+    { name: "Home", href: "/", icon: HomeIcon },
+    { name: "My Shop", href: "/seller/dashboard", icon: UserIcon },
+    { name: "Add Product", href: "/seller/products/add", icon: PlusCircleIcon },
+    { name: "Logout", onClick: handleLogout },
+  ];
+
+  const links = role === "SELLER" ? sellerLinks : role === "CUSTOMER" ? customerLinks : guestLinks;
+
+  const handleLinkClick = (href?: string, onClick?: () => void) => {
+    if (onClick) {
+      onClick();
+    } else if (href) {
+      router.push(href);
+    }
+  };
+
   return (
-    <ul className="flex flex-col gap-4 my-4">
+    <div className="flex flex-col gap-2 w-full">
       {links.map((link) => (
-        <Link key={link.name} href={link.href}>
-          <li
-            className="flex gap-2 items-center justify-center hover:bg-gray-100 active:bg-gray-200 p-2 rounded-md   transition-colors duration-200 ease-in-out"
-          >
-              <link.icon className="w-5 h-5 cursor-pointer" />
-            {link.name}
-          </li>
-        </Link>
+        <button
+          key={link.name}
+          onClick={() => handleLinkClick(link.href, link.onClick)}
+          className="flex gap-2 items-center justify-center hover:bg-gray-100 active:bg-gray-200 p-2 rounded-md w-full"
+        >
+          {link.icon && <link.icon className="w-5 h-5" />} {link.name}
+        </button>
       ))}
-    </ul>
+    </div>
   );
 }
