@@ -21,14 +21,28 @@ export async function GET(
       return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
     }
 
+    const invoice = invoices[0];
+
+    // Get invoice details (items)
+    const invoiceDetails = await db`
+      SELECT 
+        id.product_id,
+        id.quantity,
+        id.price,
+        id.product_name,
+        id.image_path
+      FROM invoices_details id
+      WHERE id.invoice_id = ${orderId}
+    `;
+
     const out = {
-      id: order.id,
-      createdAt: order.createdAt,
-      total: order.total,
-      status: order.status,
+      id: invoice.id,
+      createdAt: invoice.created_at,
+      total: invoice.total,
+      status: invoice.status,
       customer: {
-        name: order.customer.user?.name ?? "Customer",
-        email: order.customer.user?.email ?? "",
+        name: invoice.customer_name ?? "Customer",
+        email: invoice.customer_email ?? "",
       },
       items: order.items.map((it) => ({
         id: it.id,

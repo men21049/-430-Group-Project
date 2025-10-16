@@ -28,7 +28,6 @@ const links = [
 
 export default function NavigationItems() {
   const pathname = usePathname();
-  console.log(pathname);
 
   return (
     <>

@@ -29,6 +29,9 @@ export async function POST(
       return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
     }
 
+    const invoice = invoices[0];
+
+    // Check permissions
     let allowed = false;
     if (order.customer.user_id === user_id) allowed = true;
 
@@ -49,7 +52,7 @@ export async function POST(
       data: { status: "PAID" },
     });
 
-    return NextResponse.json({ ok: true, order: updated });
+    return NextResponse.json({ ok: true, order: updated[0] });
   } catch (err) {
     console.error("POST /api/invoices/[invoice_id]/pay error:", err);
     return NextResponse.json({ error: "Failed to mark order paid" }, { status: 500 });

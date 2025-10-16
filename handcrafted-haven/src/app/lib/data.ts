@@ -4,13 +4,36 @@
 import { Product, Category } from "./definitions";
 import connectDB from "./database";
 
-export function getSellerName(sellerId: string) {
-  return allSellers.find(s => s.id === sellerId)?.name || "Unknown Seller";
+export async function getSellerName(sellerId: string) {
+  try {
+    const db = connectDB;
+    const sellers = await db`SELECT seller_name FROM sellers WHERE seller_id = ${sellerId}`;
+    return sellers.length > 0 ? sellers[0].seller_name : "Unknown Seller";
+  } catch (error) {
+    console.error("Error fetching seller name:", error);
+    return "Unknown Seller";
+  }
 }
 
 // Get full seller info
 export async function getSellerInfo(sellerId: string) {
-  return allSellers.find(s => s.id === sellerId) || { name: "Unknown Seller", logo: "", banner: "", bio: "" };
+  try {
+    const db = connectDB;
+    const sellers = await db`SELECT seller_name, seller_type FROM sellers WHERE seller_id = ${sellerId}`;
+    if (sellers.length > 0) {
+      const seller = sellers[0];
+      return {
+        name: seller.seller_name,
+        logo: "",
+        banner: "",
+        bio: `Seller type: ${seller.seller_type}`
+      };
+    }
+    return { name: "Unknown Seller", logo: "", banner: "", bio: "" };
+  } catch (error) {
+    console.error("Error fetching seller info:", error);
+    return { name: "Unknown Seller", logo: "", banner: "", bio: "" };
+  }
 }
 
 export async function getAllSellerProducts(sellerId?: string) {
@@ -128,5 +151,16 @@ export async function getCategoriesFromDB() {
         }
         
         throw new Error("Failed to fetch categories from database");
+    }
+}
+
+export async function getSellerProductsByCategory(sellerId: string, category: string) {
+    try {
+        const db = connectDB;
+        const products = await db<Product[]>`SELECT * FROM products WHERE seller_id = ${sellerId} AND category = ${category};`;
+        return products;
+    } catch (error) {
+        console.error("Error fetching products by category from database:", error);
+        throw new Error("Failed to fetch products by category from database");
     }
 }

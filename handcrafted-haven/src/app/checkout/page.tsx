@@ -5,11 +5,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import WithAuth from "@/app/components/withAuth";
 
-interface CheckoutPageProps {
-  role?: "CUSTOMER" | "SELLER";
-}
-
-function CheckoutPageContent({ role }: CheckoutPageProps) {
+function CheckoutPageContent() {
   const [status, setStatus] = useState("Processing checkout...");
   const router = useRouter();
 
@@ -44,10 +40,10 @@ function CheckoutPageContent({ role }: CheckoutPageProps) {
   );
 }
 
-export default function ProtectedCheckoutPage({ role }: CheckoutPageProps) {
+export default function CheckoutPage() {
   return (
     <WithAuth>
-      <CheckoutPageContent role={role} />
+      <CheckoutPageContent />
     </WithAuth>
   );
 }

@@ -1,7 +1,9 @@
 import Link from "next/link"
 import CallToAction from "@/app/ui/landing-page/cta-section";
 
-export default function Manage(){
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import Cookies from "js-cookie";
 
     return(
         <div>

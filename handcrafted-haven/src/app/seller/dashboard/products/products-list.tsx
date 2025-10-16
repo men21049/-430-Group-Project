@@ -12,11 +12,11 @@ export default async function ProductsList({id}: {id: string}) {
             <ul className="flex flex-col gap-4">
                 {
                     products.map((product) => (
-                        <li key={product.id} className="flex flex-col gap-2 bg-gray-100 p-3 rounded-md ">
-                            <h3 className="text-md font-semibold">{product.name}</h3>
+                        <li key={product.product_id} className="flex flex-col gap-2 bg-gray-100 p-3 rounded-md ">
+                            <h3 className="text-md font-semibold">{product.product_name}</h3>
                             <p>{product.description}</p>
                             <p className="text-sm font-semibold">{product.price}</p>
-                            <Image src={product.image} alt={product.name} width={100} height={100} className="m-auto"/>
+                            <Image src={product.image_path} alt={product.product_name} width={100} height={100} className="m-auto"/>
                             <div className="flex justify-center bg-white p-4 rounded-md">
                                 <ToggleSwitch/>
                             </div>

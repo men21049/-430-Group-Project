@@ -4,7 +4,7 @@ import { getProductsFromDB } from "@/app/lib/data";
 import Link from 'next/link';
 
 interface CategoryPageProps {
-  params: { categoryName: string };
+  params: Promise<{ categoryName: string }>;
 }
 
 export default async function CategoryPage({ params }: CategoryPageProps) {

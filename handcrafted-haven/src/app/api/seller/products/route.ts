@@ -86,7 +86,6 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    // Allow SELLER and ADMIN to create products
     if (!isSellerOrAdmin(user)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -177,7 +176,6 @@ export async function DELETE(req: Request) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
 
-    // If not admin, ensure product belongs to seller
     if (!isAdmin(user)) {
       const seller = await db`
         SELECT seller_id FROM sellers 

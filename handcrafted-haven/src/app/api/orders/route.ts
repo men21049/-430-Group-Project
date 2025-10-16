@@ -17,6 +17,7 @@ export async function GET(req: Request) {
     if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 401 });
     }
+    const user = users[0];
 
     let invoices;
 
@@ -100,6 +101,7 @@ export async function POST(req: Request) {
       if (!product) {
         return NextResponse.json({ error: `Product not found: ${it.id}` }, { status: 400 });
       }
+      const product = products[0];
       const price = product.price;
       const qty = Math.max(1, Math.floor(it.quantity || 1));
       total += price * qty;

@@ -14,7 +14,7 @@ import Link from "next/link";
 const categoryNames = ["Jewellery", "Art", "Home", "Clothing", "Modern", "Tendency"];
 const categoryIcons = [ShoppingBagIcon, PaintBrushIcon, HomeModernIcon, TagIcon, RectangleGroupIcon, StarIcon];
 
-const allCategories: Category[] = categoryNames.map((name, index) => ({
+const allCategories = categoryNames.map((name, index) => ({
   name,
   icon: categoryIcons[index]
 }));

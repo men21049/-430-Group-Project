@@ -8,11 +8,11 @@ import WithAuth from "@/app/components/withAuth";
 import ToggleSwitch from "@/app/ui/dashboard/toggle-switch";
 
 type Product = {
-  id: string;
-  name: string;
+  product_id: number;
+  product_name: string;
   description?: string;
   price: number;
-  image?: string;
+  image_path: string;
 };
 
 function ProductsListContent() {
@@ -39,21 +39,21 @@ function ProductsListContent() {
     <ul className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 p-4">
       {products.map((product) => (
         <li
-          key={product.id}
+          key={product.product_id}
           className="flex flex-col gap-3 cursor-pointer p-2 border rounded-md shadow hover:shadow-lg transition-transform duration-200 hover:scale-105 active:scale-95"
         >
-          {product.image && (
+          {product.image_path && (
             <div className="relative w-full h-60 rounded-lg bg-gray-100">
               <Image
-                src={product.image}
-                alt={product.name}
+                src={product.image_path}
+                alt={product.product_name}
                 fill
                 className="object-contain"
               />
             </div>
           )}
           <div className="text-center">
-            <h3 className="font-semibold text-lg">{product.name}</h3>
+            <h3 className="font-semibold text-lg">{product.product_name}</h3>
             <p className="text-orange-500 font-bold">
               ${product.price.toFixed(2)}
             </p>
@@ -62,7 +62,7 @@ function ProductsListContent() {
             )}
           </div>
           <div className="flex gap-2 justify-center mt-2">
-            <Link href={`/shop/seller/dashboard/manage/update/${product.id}`}>
+            <Link href={`/shop/seller/dashboard/manage/update/${product.product_id}`}>
               <button className="flex-1 px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600 active:scale-95 transition-transform duration-150">
                 Edit
               </button>

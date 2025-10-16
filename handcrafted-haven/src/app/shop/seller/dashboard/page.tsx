@@ -59,26 +59,27 @@ function DashboardContent() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
           {products.map(p => (
-            <ProductCard
-              key={p.id}
-              id={p.id}
-              name={p.name}
-              price={p.price}
-              image={p.image}
-              showAddToCart={false} // seller view
-            >
-              <Link href={`/seller/dashboard/manage/update/${p.id}`}>
-                <button className="flex-1 px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600">
-                  Edit
+            <div key={p.id} className="border rounded p-2 shadow hover:shadow-lg transition-transform duration-150 hover:scale-105 active:scale-95 max-w-xs">
+              <ProductCard
+                id={p.id}
+                name={p.name}
+                price={p.price}
+                image={p.image}
+              />
+              <div className="flex gap-2 mt-2">
+                <Link href={`/seller/dashboard/manage/update/${p.id}`}>
+                  <button className="flex-1 px-2 py-1 bg-blue-500 text-white rounded hover:bg-blue-600">
+                    Edit
+                  </button>
+                </Link>
+                <button
+                  onClick={() => handleDelete(p.id)}
+                  className="flex-1 px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600"
+                >
+                  Delete
                 </button>
-              </Link>
-              <button
-                onClick={() => handleDelete(p.id)}
-                className="flex-1 px-2 py-1 bg-red-500 text-white rounded hover:bg-red-600"
-              >
-                Delete
-              </button>
-            </ProductCard>
+              </div>
+            </div>
           ))}
         </div>
       )}
