@@ -10,8 +10,11 @@ import connectDB from "@/app/lib/database";
  */
 export async function GET(req: Request) {
   try {
+    console.log("🔍 /api/auth/me - Headers:", req.headers.get("cookie"));
     const payload = getCurrentUserFromRequest(req);
+    console.log("🔍 /api/auth/me - Payload:", payload);
     if (!payload?.userId) {
+      console.log("🔍 /api/auth/me - No payload or userId, returning 401");
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 

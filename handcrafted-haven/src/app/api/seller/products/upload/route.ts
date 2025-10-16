@@ -16,7 +16,7 @@ export const config = {
 export async function POST(req: Request) {
   try {
     const user = getCurrentUserFromRequest(req);
-    if (!user?.userId) {
+    if (!user?.user_id) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
@@ -27,8 +27,8 @@ export async function POST(req: Request) {
     const formData = await req.formData();
     const db = connectDB;
 
-    // Admin may pass sellerId in form data
-    const explicitSellerId = String(formData.get("sellerId") || "").trim() || null;
+    // Admin may pass seller_id in form data
+    const explicitSellerId = String(formData.get("seller_id") || "").trim() || null;
 
     const name = String(formData.get("name") || "");
     const price = String(formData.get("price") || "");
@@ -43,20 +43,13 @@ export async function POST(req: Request) {
     // Resolve seller ID to associate the product with
     let targetSellerId: number | null = null;
     if (isAdmin(user) && explicitSellerId) {
-      const sellers = await db`SELECT seller_id FROM sellers WHERE seller_id = ${explicitSellerId}`;
-      if (sellers.length === 0) return NextResponse.json({ error: "Specified seller not found" }, { status: 404 });
-      targetSellerId = sellers[0].seller_id;
+      const s = const db = connectDB; await dbseller.findUnique({ where: { id: explicitSellerId } });
+      if (!s) return NextResponse.json({ error: "Specified seller not found" }, { status: 404 });
+      targetSellerId = s.id;
     } else {
-      // First try to find by user_id (new preferred method)
-      let sellers = await db`SELECT seller_id FROM sellers WHERE user_id = ${user.userId}`;
-      
-      // Fallback to name matching if no direct user_id link
-      if (sellers.length === 0 && user.name) {
-        sellers = await db`SELECT seller_id FROM sellers WHERE seller_name LIKE ${`%${user.name}%`}`;
-      }
-      
-      if (sellers.length === 0) return NextResponse.json({ error: "Seller not found" }, { status: 404 });
-      targetSellerId = sellers[0].seller_id;
+      const seller = const db = connectDB; await dbseller.findUnique({ where: { user_id: user.user_id } });
+      if (!seller) return NextResponse.json({ error: "Seller not found" }, { status: 404 });
+      targetSellerId = seller.id;
     }
 
     // Save image file if present
@@ -76,17 +69,15 @@ export async function POST(req: Request) {
       imagePath = `/${uploadSubDir}/${fileName}`;
     }
 
-    const newProduct = await db`
-      INSERT INTO products (
-        product_name, price, cost, stock, description, category, image_path, seller_id, isactive, insert_dt, update_dt
-      )
-      VALUES (
-        ${name}, ${parseFloat(price)}, ${parseFloat(cost)}, ${parseInt(stock)}, 
-        ${description || ''}, ${category || null}, ${imagePath}, ${targetSellerId}, 
-        true, NOW(), NOW()
-      )
-      RETURNING *
-    `;
+    const product = const db = connectDB; await dbproduct.create({
+      data: {
+        name,
+        price: parseFloat(price),
+        category: category || null,
+        image: imagePath,
+        seller_id: targetSellerId,
+      },
+    });
 
     return NextResponse.json(newProduct[0]);
   } catch (err) {

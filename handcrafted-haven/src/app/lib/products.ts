@@ -2,16 +2,17 @@ import connectDB from "./database";
 
 export const getSellerProducts = async (sellerId: string) => {
   const db = connectDB;
-  return db`
+  return await db`
     SELECT 
       product_id as id,
       product_name as name,
       price,
+      description,
       category,
       image_path as image,
-      seller_id as sellerId,
-      insert_dt as createdAt
-    FROM products
+      seller_id,
+      insert_dt as created_at
+    FROM products 
     WHERE seller_id = ${sellerId} AND isactive = true
     ORDER BY insert_dt DESC
   `;
@@ -25,25 +26,19 @@ export const addProduct = async (data: {
   sellerId: string;
 }) => {
   const db = connectDB;
-  const newProduct = await db`
-    INSERT INTO products (
-      product_name, price, category, image_path, seller_id, isactive, insert_dt, update_dt
-    )
-    VALUES (
-      ${data.name}, ${data.price}, ${data.category || null}, ${data.image || null}, 
-      ${data.sellerId}, true, NOW(), NOW()
-    )
+  return await db`
+    INSERT INTO products (product_name, price, category, image_path, seller_id, isactive, stock, description, insert_dt, update_dt)
+    VALUES (${data.name}, ${data.price}, ${data.category || null}, ${data.image || null}, ${data.sellerId}, true, 0, '', NOW(), NOW())
     RETURNING *
   `;
-  return newProduct[0];
 };
 
 export const removeProduct = async (id: string) => {
   const db = connectDB;
-  await db`
+  return await db`
     UPDATE products 
-    SET isactive = false, update_dt = NOW() 
+    SET isactive = false, update_dt = NOW()
     WHERE product_id = ${id}
+    RETURNING *
   `;
-  return { id };
 };

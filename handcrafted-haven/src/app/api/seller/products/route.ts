@@ -10,7 +10,7 @@ import {
 export async function GET(req: Request) {
   try {
     const user = getCurrentUserFromRequest(req);
-    if (!user?.userId) {
+    if (!user?.user_id) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
@@ -20,16 +20,14 @@ export async function GET(req: Request) {
     if (isAdmin(user)) {
       const allProducts = await db`
         SELECT 
-          p.product_id as id, 
-          p.product_name as name, 
-          p.price, 
-          p.cost,
-          p.stock,
+          p.product_id,
+          p.product_name,
+          p.price,
           p.description,
-          p.category, 
-          p.image_path as image, 
-          p.seller_id, 
-          p.insert_dt as created_at, 
+          p.category,
+          p.image_path,
+          p.seller_id,
+          p.insert_dt,
           p.isactive,
           s.seller_name
         FROM products p
@@ -45,48 +43,31 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    // Find seller profile associated with the user
-    // First try to find by user_id (new preferred method)
-    let sellers = await db`
-      SELECT seller_id, seller_name FROM sellers 
-      WHERE user_id = ${user.userId}
+    // Find seller profile for this user
+    const seller = await db`
+      SELECT * FROM sellers 
+      WHERE seller_name LIKE ${`%${user.name}%`} 
+      OR seller_name LIKE ${`%${user.email.split('@')[0]}%`}
+      LIMIT 1
     `;
-    
-    // Fallback to name matching if no direct user_id link
-    if (sellers.length === 0 && user.name) {
-      const firstName = user.name.split(' ')[0] || '';
-      const lastName = user.name.split(' ')[1] || '';
-      sellers = await db`
-        SELECT seller_id, seller_name FROM sellers 
-        WHERE seller_name LIKE ${`%${user.name}%`}
-           OR seller_name LIKE ${`%${firstName}%`}
-           OR seller_name LIKE ${`%${lastName}%`}
-      `;
+
+    if (seller.length === 0) {
+      return NextResponse.json({ error: "No seller profile found" }, { status: 404 });
     }
-    
-    if (sellers.length === 0) {
-      return NextResponse.json({ 
-        error: "No seller profile found for this user. Please contact support to link your account to a seller profile." 
-      }, { status: 404 });
-    }
-    
-    const seller = sellers[0];
 
     const products = await db`
       SELECT 
-        product_id as id, 
-        product_name as name, 
-        price, 
-        cost,
-        stock,
-        description, 
-        category, 
-        image_path as image, 
-        seller_id, 
-        insert_dt as created_at, 
+        product_id,
+        product_name,
+        price,
+        description,
+        category,
+        image_path,
+        seller_id,
+        insert_dt,
         isactive
-      FROM products
-      WHERE seller_id = ${seller.seller_id} 
+      FROM products 
+      WHERE seller_id = ${seller[0].seller_id} 
       AND isactive = true
       ORDER BY insert_dt DESC
     `;
@@ -101,7 +82,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const user = getCurrentUserFromRequest(req);
-    if (!user?.userId) {
+    if (!user?.user_id) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
@@ -110,36 +91,60 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { name, price, category, image, description, cost, stock } = body;
-    let { sellerId: explicitSellerId } = body;
+    const { name, price, category, image, seller_id: explicitSellerId } = body;
 
     if (!name || !price) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
     }
 
     const db = connectDB;
-    let targetSellerId: number | null = null;
 
+    // If admin provided explicit seller_id, use it; otherwise use seller associated with the user
+    let targetSellerId: number | null = null;
     if (isAdmin(user) && explicitSellerId) {
-      const s = await db`SELECT seller_id FROM sellers WHERE seller_id = ${explicitSellerId}`;
-      if (s.length === 0) return NextResponse.json({ error: "Specified seller not found" }, { status: 404 });
-      targetSellerId = s[0].seller_id;
+      // ensure seller exists
+      const seller = await db`
+        SELECT seller_id FROM sellers WHERE seller_id = ${explicitSellerId}
+      `;
+      if (seller.length === 0) {
+        return NextResponse.json({ error: "Specified seller not found" }, { status: 404 });
+      }
+      targetSellerId = seller[0].seller_id;
     } else {
-      const sellers = await db`SELECT seller_id FROM sellers WHERE seller_name LIKE ${`%${user.name}%`}`;
-      if (sellers.length === 0) return NextResponse.json({ error: "No seller profile found for this user" }, { status: 404 });
-      targetSellerId = sellers[0].seller_id;
+      const seller = await db`
+        SELECT seller_id FROM sellers 
+        WHERE seller_name LIKE ${`%${user.name}%`} 
+        OR seller_name LIKE ${`%${user.email.split('@')[0]}%`}
+        LIMIT 1
+      `;
+      if (seller.length === 0) {
+        return NextResponse.json({ error: "No seller profile found" }, { status: 404 });
+      }
+      targetSellerId = seller[0].seller_id;
     }
 
     const newProduct = await db`
       INSERT INTO products (
-        product_name, price, cost, stock, description, category, image_path, 
-        seller_id, isactive, insert_dt, update_dt
+        product_name, 
+        price, 
+        description, 
+        category, 
+        image_path, 
+        seller_id, 
+        isactive, 
+        insert_dt, 
+        update_dt
       )
       VALUES (
-        ${name}, ${parseFloat(String(price))}, ${parseFloat(String(cost || 0))}, 
-        ${parseInt(String(stock || 0))}, ${description || ''}, 
-        ${category || null}, ${image || null}, ${targetSellerId}, 
-        true, NOW(), NOW()
+        ${name}, 
+        ${parseFloat(String(price))}, 
+        ${body.description || ''}, 
+        ${category || null}, 
+        ${image || null}, 
+        ${targetSellerId}, 
+        true, 
+        NOW(), 
+        NOW()
       )
       RETURNING *
     `;
@@ -154,7 +159,7 @@ export async function POST(req: Request) {
 export async function DELETE(req: Request) {
   try {
     const user = getCurrentUserFromRequest(req);
-    if (!user?.userId) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
+    if (!user?.user_id) return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     if (!isSellerOrAdmin(user)) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const url = new URL(req.url);
@@ -162,20 +167,24 @@ export async function DELETE(req: Request) {
     if (!id) return NextResponse.json({ error: "Missing product id" }, { status: 400 });
 
     const db = connectDB;
-    const products = await db`SELECT seller_id FROM products WHERE product_id = ${id}`;
-    if (products.length === 0) return NextResponse.json({ error: "Product not found" }, { status: 404 });
-    const product = products[0];
+
+    const product = await db`
+      SELECT * FROM products WHERE product_id = ${id}
+    `;
+    
+    if (product.length === 0) {
+      return NextResponse.json({ error: "Product not found" }, { status: 404 });
+    }
 
     if (!isAdmin(user)) {
-      // First try to find by user_id (new preferred method)
-      let sellers = await db`SELECT seller_id FROM sellers WHERE user_id = ${user.userId}`;
+      const seller = await db`
+        SELECT seller_id FROM sellers 
+        WHERE seller_name LIKE ${`%${user.name}%`} 
+        OR seller_name LIKE ${`%${user.email.split('@')[0]}%`}
+        LIMIT 1
+      `;
       
-      // Fallback to name matching if no direct user_id link
-      if (sellers.length === 0 && user.name) {
-        sellers = await db`SELECT seller_id FROM sellers WHERE seller_name LIKE ${`%${user.name}%`}`;
-      }
-      
-      if (sellers.length === 0 || product.seller_id !== sellers[0].seller_id) {
+      if (seller.length === 0 || product[0].seller_id !== seller[0].seller_id) {
         return NextResponse.json({ error: "Product not owned by you" }, { status: 403 });
       }
     }
@@ -185,6 +194,7 @@ export async function DELETE(req: Request) {
       SET isactive = false, update_dt = NOW() 
       WHERE product_id = ${id}
     `;
+    
     return NextResponse.json({ success: true });
   } catch (err) {
     console.error("DELETE /api/seller/products error:", err);

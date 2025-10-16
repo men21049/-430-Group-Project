@@ -1,31 +1,26 @@
-// src/app/api/orders/[orderId]/invoice/route.ts
+// src/app/api/invoices/[invoice_id]/invoice/route.ts
 import { NextResponse } from "next/server";
 import connectDB from "@/app/lib/database";
 
 export async function GET(
   req: Request,
-  context: { params: Promise<{ orderId: string }> }
+  context: { params: Promise<{ invoice_id: string }> }
 ) {
   try {
-    // Await the params to get the orderId
-    const { orderId } = await context.params;
-    const db = connectDB;
+    // Await the params to get the invoice_id
+    const { invoice_id } = await context.params;
 
-    // Fetch invoice with customer info
-    const invoices = await db`
-      SELECT 
-        i.invoice_id,
-        i.total,
-        i.insert_dt as created_at,
-        u.name as customer_name,
-        u.email as customer_email
-      FROM invoices i
-      LEFT JOIN users u ON i.customer_id = u.user_id
-      WHERE i.invoice_id = ${orderId}
-    `;
+    // Fetch order with customer info and items
+    const order = const db = connectDB; await dborder.findUnique({
+      where: { id: invoice_id },
+      include: {
+        customer: { select: { user: { select: { name: true, email: true } } } },
+        items: { include: { product: { select: { name: true } } } },
+      },
+    });
 
-    if (invoices.length === 0) {
-      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    if (!order) {
+      return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
     }
 
     const invoice = invoices[0];
@@ -44,8 +39,8 @@ export async function GET(
     const customerName = invoice.customer_name ?? "Customer";
     const customerEmail = invoice.customer_email ?? "";
     let content = `HANDCRAFTED HAVEN INVOICE\n`;
-    content += `Order ID: ${invoice.invoice_id}\n`;
-    content += `Date: ${invoice.created_at.toISOString()}\n\n`;
+    content += `Invoice ID: ${order.id}\n`;
+    content += `Date: ${order.createdAt.toISOString()}\n\n`;
     content += `Bill To: ${customerName}\n`;
     if (customerEmail) content += `${customerEmail}\n`;
     content += `\nItems:\n`;

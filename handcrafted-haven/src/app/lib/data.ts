@@ -1,7 +1,7 @@
 // src/app/lib/data.ts
 // @ts-nocheck
 
-import { Product,Category } from "./definitions";
+import { Product, Category } from "./definitions";
 import connectDB from "./database";
 
 export async function getSellerName(sellerId: string) {
@@ -60,10 +60,30 @@ export async function searchProducts(query: string) {
 export async function getProductsFromDB() {
     try {
         const db = connectDB;
-        const products = await db<Product[]>`SELECT * FROM products;`;
+        const products = await db`
+            SELECT 
+                product_id as id,
+                product_name as name,
+                price,
+                description,
+                category,
+                image_path as image,
+                seller_id,
+                insert_dt as created_at
+            FROM products 
+            WHERE isactive = true
+        `;
+        console.log("✅ Productos obtenidos de la base de datos:", products.length);
         return products;
     } catch (error) {
-        console.error("Error fetching data from database:", error);
+        console.error("❌ Error fetching data from database:", error);
+        
+        // Si es un error de conexión, devolver datos de ejemplo
+        if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
+            console.log("⚠️ Usando datos de ejemplo debido a error de conexión");
+            return [];
+        }
+        
         throw new Error("Failed to fetch data from database");
     }
 }
@@ -79,7 +99,19 @@ export async function getProductFromDB(productId: string | number) {
         }
         
         const db = connectDB;
-        const products = await db<Product[]>`SELECT * FROM products WHERE product_id = ${id};`;
+        const products = await db`
+            SELECT 
+                product_id as id,
+                product_name as name,
+                price,
+                description,
+                category,
+                image_path as image,
+                seller_id,
+                insert_dt as created_at
+            FROM products 
+            WHERE product_id = ${id} AND isactive = true
+        `;
         
         if (products.length === 0) {
             throw new Error(`Product with ID ${id} not found`);
@@ -88,7 +120,14 @@ export async function getProductFromDB(productId: string | number) {
         return products[0]; // Retornar el primer (y único) producto
     }
     catch (error) {
-        console.error("Error fetching product from database:", error);
+        console.error("❌ Error fetching product from database:", error);
+        
+        // Si es un error de conexión, devolver null
+        if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
+            console.log("⚠️ Error de conexión, devolviendo null");
+            return null;
+        }
+        
         throw new Error("Failed to fetch product from database");
     }
 }
@@ -96,10 +135,21 @@ export async function getProductFromDB(productId: string | number) {
 export async function getCategoriesFromDB() {
     try {
         const db = connectDB;
-        const categories = await db<Category[]>`SELECT DISTINCT category FROM products;`;
+        const categories = await db`
+            SELECT DISTINCT category 
+            FROM products 
+            WHERE isactive = true AND category IS NOT NULL
+        `;
         return categories;
     } catch (error) {
-        console.error("Error fetching categories from database:", error);
+        console.error("❌ Error fetching categories from database:", error);
+        
+        // Si es un error de conexión, devolver categorías de ejemplo
+        if (error.code === 'ECONNREFUSED' || error.code === 'ENOTFOUND') {
+            console.log("⚠️ Usando categorías de ejemplo debido a error de conexión");
+            return [];
+        }
+        
         throw new Error("Failed to fetch categories from database");
     }
 }

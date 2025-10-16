@@ -3,7 +3,7 @@ import connectDB from "@/app/lib/database";
 import { getCurrentUserFromHeaders, CurrentUserPayload } from "@/lib/auth";
 
 interface AddCartBody {
-  productId: string;
+  product_id: string;
   quantity?: number;
 }
 
@@ -11,7 +11,7 @@ export async function POST(request: Request) {
   try {
     // Parse user from headers/cookies
     const user: CurrentUserPayload | null = getCurrentUserFromHeaders(request.headers);
-    if (!user || !(user.userId || user.email)) {
+    if (!user || !(user.user_id || user.email)) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
@@ -23,18 +23,19 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
     }
 
-    const productId = body?.productId?.trim() ?? "";
+    const product_id = body?.product_id?.trim() ?? "";
     const quantity = Math.max(1, Number(body?.quantity || 1));
 
-    if (!productId) {
-      return NextResponse.json({ error: "Missing productId in request body" }, { status: 400 });
+    if (!product_id) {
+      return NextResponse.json({ error: "Missing product_id in request body" }, { status: 400 });
     }
 
-    // Resolve userId from payload or email lookup
-    let uid = user.userId;
+    const db = connectDB;
+
+    // Resolve user_id from payload or email lookup
+    let uid = user.user_id;
     if (!uid && user.email) {
-      const db = connectDB;
-      const dbUsers = await db`SELECT user_id FROM users WHERE email = ${user.email}`;
+      const dbUsers = await db`SELECT * FROM users WHERE email = ${user.email}`;
       uid = dbUsers.length > 0 ? dbUsers[0].user_id : undefined;
     }
     if (!uid) {
@@ -42,44 +43,42 @@ export async function POST(request: Request) {
     }
 
     // Verify product exists
-    const db = connectDB;
-    const products = await db`SELECT * FROM products WHERE product_id = ${productId}`;
+    const products = await db`SELECT * FROM products WHERE user_id = ${product_id}`;
     if (products.length === 0) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
     const product = products[0];
 
     // Upsert cart item
-    const existingItems = await db`
+    const existing = await db`
       SELECT * FROM cart_items 
-      WHERE user_id = ${uid} AND product_id = ${productId}
+      WHERE user_id = ${uid} AND product_id = ${product_id}
     `;
 
     let cartItem;
-    if (existingItems.length > 0) {
-      const existing = existingItems[0];
-      const updatedItems = await db`
+    if (existing.length > 0) {
+      const updated = await db`
         UPDATE cart_items 
-        SET quantity = ${existing.quantity + quantity}, update_dt = NOW()
-        WHERE cart_item_id = ${existing.cart_item_id}
+        SET quantity = ${existing[0].quantity + quantity}, update_dt = NOW()
+        WHERE user_id = ${existing[0].id}
         RETURNING *
       `;
-      cartItem = updatedItems[0];
+      cartItem = updated[0];
     } else {
-      const newItems = await db`
+      const newItem = await db`
         INSERT INTO cart_items (user_id, product_id, quantity, insert_dt, update_dt)
-        VALUES (${uid}, ${productId}, ${quantity}, NOW(), NOW())
+        VALUES (${uid}, ${product_id}, ${quantity}, NOW(), NOW())
         RETURNING *
       `;
-      cartItem = newItems[0];
+      cartItem = newItem[0];
     }
 
     return NextResponse.json(
       {
         ok: true,
         item: {
-          id: cartItem.cart_item_id,
-          productId: cartItem.product_id,
+          id: cartItem.id,
+          product_id: cartItem.product_id,
           quantity: cartItem.quantity,
           name: product.product_name,
           price: product.price,

@@ -10,7 +10,11 @@ async function ProductsListContent() {
   if (!user?.userId)
     return <p className="text-red-600 text-center mt-8">Not authenticated.</p>;
 
-  const db = connectDB;
+  // Get the seller linked to this user
+  const seller = const db = connectDB; await dbseller.findUnique({
+    where: { userId: user.id },
+    include: { products: true },
+  });
 
   // Get the seller linked to this user
   const sellers = await db`

@@ -6,21 +6,19 @@ import { getCurrentUserFromHeaders } from "@/lib/auth";
 export async function POST(request: Request) {
   try {
     const user = getCurrentUserFromHeaders(request.headers);
-    if (!user || !(user.userId || user.email)) {
+    if (!user || !(user.user_id || user.email)) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    let uid: string | undefined = user.userId;
+    let uid: string | undefined = user.user_id;
     if (!uid && user.email) {
-      const db = connectDB;
-      const dbUsers = await db`SELECT user_id FROM users WHERE email = ${user.email}`;
-      uid = dbUsers.length > 0 ? dbUsers[0].user_id : undefined;
+      const dbUser = const db = connectDB; await dbuser.findUnique({ where: { email: user.email } });
+      uid = dbUser?.id;
     }
 
     if (!uid) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-    const db = connectDB;
-    await db`DELETE FROM cart_items WHERE user_id = ${uid}`;
+    const db = connectDB; await dbcartItem.deleteMany({ where: { user_id: uid } });
 
     return NextResponse.json({ success: true }, { status: 200 });
   } catch (err) {

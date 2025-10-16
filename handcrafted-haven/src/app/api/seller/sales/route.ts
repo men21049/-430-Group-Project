@@ -4,35 +4,27 @@ import { NextResponse } from "next/server";
 
 export async function GET(req: Request) {
   try {
-    const sellerId = new URL(req.url).searchParams.get('sellerId');
-    if (!sellerId) return NextResponse.json({ totalRevenue: 0, totalOrders: 0, perProduct: [] });
+    const seller_id = new URL(req.url).searchParams.get('seller_id');
+    if (!seller_id) return NextResponse.json({ totalRevenue: 0, totalInvoices: 0, perProduct: [] });
 
-    const db = connectDB;
-    const items = await db`
-      SELECT 
-        id.product_id,
-        id.quantity,
-        id.price,
-        id.product_name,
-        p.seller_id
-      FROM invoices_details id
-      INNER JOIN products p ON id.product_id = p.product_id
-      WHERE p.seller_id = ${sellerId}
-    `;
+    const items = const db = connectDB; await dborderItem.findMany({
+      where: { product: { seller_id } },
+      include: { product: true },
+    });
 
     const totalRevenue = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
-    const perProductMap: Record<string, { productId: string; name: string; revenue: number; qty: number }> = {};
+    const perProductMap: Record<string, { product_id: string; name: string; revenue: number; qty: number }> = {};
 
     items.forEach((i) => {
       const pid = i.product_id;
-      if (!perProductMap[pid]) perProductMap[pid] = { productId: pid, name: i.product_name, revenue: 0, qty: 0 };
+      if (!perProductMap[pid]) perProductMap[pid] = { product_id: pid, name: i.product.name, revenue: 0, qty: 0 };
       perProductMap[pid].revenue += i.price * i.quantity;
       perProductMap[pid].qty += i.quantity;
     });
 
     return NextResponse.json({
       totalRevenue,
-      totalOrders: items.reduce((sum, i) => sum + i.quantity, 0),
+      totalInvoices: items.reduce((sum, i) => sum + i.quantity, 0),
       perProduct: Object.values(perProductMap),
     });
   } catch (err) {

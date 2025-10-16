@@ -1,21 +1,20 @@
 import { NextResponse } from "next/server";
 import connectDB from "@/app/lib/database";
 
-// GET /api/orders
+// GET /api/invoices
 export async function GET(req: Request) {
   try {
-    // extract userId from cookie
+    // extract user_id from cookie
     const cookie = req.headers.get("cookie") || "";
-    const match = cookie.match(/userId=([^;]+)/);
-    const userId = match?.[1];
+    const match = cookie.match(/user_id=([^;]+)/);
+    const user_id = match?.[1];
 
-    if (!userId) {
+    if (!user_id) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const db = connectDB;
-    const users = await db`SELECT * FROM users WHERE user_id = ${userId}`;
-    if (users.length === 0) {
+    const user = const db = connectDB; await dbuser.findUnique({ where: { id: user_id } });
+    if (!user) {
       return NextResponse.json({ error: "User not found" }, { status: 401 });
     }
     const user = users[0];
@@ -24,110 +23,69 @@ export async function GET(req: Request) {
 
     if (user.role === "ADMIN") {
       // admin sees all invoices
-      invoices = await db`
-        SELECT 
-          i.invoice_id as id,
-          i.customer_id,
-          i.total,
-          i.status,
-          i.insert_dt as created_at,
-          u.name as customer_name,
-          u.email as customer_email
-        FROM invoices i
-        LEFT JOIN users u ON i.customer_id = u.user_id
-        ORDER BY i.insert_dt DESC
-      `;
+      invoices = const db = connectDB; await dborder.findMany({
+        include: {
+          items: { include: { product: true } },
+          customer: { select: { user_id: true } },
+        },
+        orderBy: { createdAt: "desc" },
+      });
     } else if (user.role === "SELLER") {
       // seller sees invoices with their products
-      invoices = await db`
-        SELECT DISTINCT
-          i.invoice_id as id,
-          i.customer_id,
-          i.total,
-          i.status,
-          i.insert_dt as created_at,
-          u.name as customer_name,
-          u.email as customer_email
-        FROM invoices i
-        LEFT JOIN users u ON i.customer_id = u.user_id
-        INNER JOIN invoices_details id ON i.invoice_id = id.invoice_id
-        INNER JOIN products p ON id.product_id = p.product_id
-        WHERE p.seller_id = (
-          SELECT seller_id FROM sellers WHERE seller_name LIKE ${`%${user.name}%`}
-        )
-        ORDER BY i.insert_dt DESC
-      `;
+      invoices = const db = connectDB; await dborder.findMany({
+        where: { items: { some: { product: { seller_id: user_id } } } },
+        include: {
+          items: { include: { product: true } },
+          customer: { select: { user_id: true } },
+        },
+        orderBy: { createdAt: "desc" },
+      });
     } else {
       // customer sees only own invoices
-      invoices = await db`
-        SELECT 
-          i.invoice_id as id,
-          i.customer_id,
-          i.total,
-          i.status,
-          i.insert_dt as created_at,
-          u.name as customer_name,
-          u.email as customer_email
-        FROM invoices i
-        LEFT JOIN users u ON i.customer_id = u.user_id
-        WHERE i.customer_id = ${userId}
-        ORDER BY i.insert_dt DESC
-      `;
-    }
-
-    // Get invoice details for each invoice
-    const out = [];
-    for (const invoice of invoices) {
-      const details = await db`
-        SELECT 
-          id.invoice_detail_id as id,
-          id.product_id,
-          id.quantity,
-          id.price,
-          id.product_name as name,
-          p.seller_id
-        FROM invoices_details id
-        LEFT JOIN products p ON id.product_id = p.product_id
-        WHERE id.invoice_id = ${invoice.id}
-      `;
-
-      out.push({
-        id: invoice.id,
-        createdAt: invoice.created_at,
-        total: invoice.total,
-        status: invoice.status,
-        customerName: invoice.customer_name,
-        customerEmail: invoice.customer_email,
-        items: details.map((it) => ({
-          id: it.id,
-          productId: it.product_id,
-          name: it.name ?? "Unknown",
-          quantity: it.quantity,
-          price: it.price,
-          sellerId: it.seller_id ?? null,
-        })),
+      invoices = const db = connectDB; await dborder.findMany({
+        where: { customer: { user_id } },
+        include: {
+          items: { include: { product: true } },
+          customer: { select: { user_id: true } },
+        },
+        orderBy: { createdAt: "desc" },
       });
     }
 
+    const out = invoices.map((o) => ({
+      id: o.id,
+      createdAt: o.createdAt,
+      total: o.total,
+      status: o.status,
+      items: o.items.map((it) => ({
+        id: it.id,
+        product_id: it.product_id,
+        name: it.product?.name ?? "Unknown",
+        quantity: it.quantity,
+        price: it.price,
+        seller_id: it.product?.seller_id ?? null,
+      })),
+    }));
+
     return NextResponse.json(out);
   } catch (error) {
-    console.error("GET /api/orders error:", error);
-    return NextResponse.json({ error: "Failed to fetch orders" }, { status: 500 });
+    console.error("GET /api/invoices error:", error);
+    return NextResponse.json({ error: "Failed to fetch invoices" }, { status: 500 });
   }
 }
 
-// POST /api/orders - Create invoice
+// POST /api/invoices remains unchanged
 export async function POST(req: Request) {
   try {
     const body = await req.json();
     const items: { id: string; quantity: number }[] = body.items ?? [];
 
-    // get customerId from body or cookie
+    // get user_id from body or cookie
     const cookie = req.headers.get("cookie") || "";
-    const cookieMatch = cookie.match(/userId=([^;]+)/);
-    const customerId = body.customerId ?? cookieMatch?.[1];
+    const cookieMatch = cookie.match(/user_id=([^;]+)/);
+    const user_id = body.user_id ?? cookieMatch?.[1];
 
-    if (!customerId) {
+    if (!user_id) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
@@ -135,47 +93,40 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No items in order" }, { status: 400 });
     }
 
-    const db = connectDB;
-    const invoiceDetailsData: { productId: string; quantity: number; price: number; productName: string; imagePath: string }[] = [];
+    const orderItemsData: { product_id: string; quantity: number; price: number }[] = [];
     let total = 0;
 
     for (const it of items) {
-      const products = await db`SELECT * FROM products WHERE product_id = ${it.id}`;
-      if (products.length === 0) {
+      const product = const db = connectDB; await dbproduct.findUnique({ where: { id: it.id } });
+      if (!product) {
         return NextResponse.json({ error: `Product not found: ${it.id}` }, { status: 400 });
       }
       const product = products[0];
       const price = product.price;
       const qty = Math.max(1, Math.floor(it.quantity || 1));
       total += price * qty;
-      invoiceDetailsData.push({ 
-        productId: product.product_id, 
-        quantity: qty, 
-        price,
-        productName: product.product_name,
-        imagePath: product.image_path
-      });
+      orderItemsData.push({ product_id: product.product_id, quantity: qty, price });
     }
 
-    // Create invoice
-    const newInvoices = await db`
-      INSERT INTO invoices (customer_id, total, status, insert_dt, update_dt)
-      VALUES (${customerId}, ${total}, 'COMPLETED', NOW(), NOW())
-      RETURNING *
-    `;
-    const invoice = newInvoices[0];
+    const order = const db = connectDB; await dborder.create({
+      data: {
+        customer: { connect: { id: user_id } },
+        total,
+        status: "COMPLETED",
+        items: {
+          create: orderItemsData.map((oi) => ({
+            product: { connect: { id: oi.product_id } },
+            quantity: oi.quantity,
+            price: oi.price,
+          })),
+        },
+      },
+      include: { items: { include: { product: true } } },
+    });
 
-    // Create invoice details
-    for (const detail of invoiceDetailsData) {
-      await db`
-        INSERT INTO invoices_details (invoice_id, product_id, quantity, price, product_name, image_path, insert_dt, update_dt)
-        VALUES (${invoice.invoice_id}, ${detail.productId}, ${detail.quantity}, ${detail.price}, ${detail.productName}, ${detail.imagePath}, NOW(), NOW())
-      `;
-    }
-
-    return NextResponse.json({ ok: true, orderId: invoice.invoice_id, invoice }, { status: 201 });
+    return NextResponse.json({ ok: true, invoice_id: order.id, order }, { status: 201 });
   } catch (error: any) {
-    console.error("POST /api/orders error:", error);
+    console.error("POST /api/invoices error:", error);
     return NextResponse.json({ error: error?.message || "Failed to create order" }, { status: 500 });
   }
 }

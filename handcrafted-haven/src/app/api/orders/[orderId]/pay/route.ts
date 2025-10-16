@@ -3,81 +3,58 @@ import connectDB from "@/app/lib/database";
 
 export async function POST(
   req: NextRequest,
-  context: { params: Promise<{ orderId: string }> }
+  context: { params: Promise<{ invoice_id: string }> }
 ) {
   // await the params promise
-  const { orderId } = await context.params;
+  const { invoice_id } = await context.params;
 
   try {
     const cookie = req.headers.get("cookie") || "";
-    const match = cookie.match(/userId=([^;]+)/);
-    const userId = match?.[1];
+    const match = cookie.match(/user_id=([^;]+)/);
+    const user_id = match?.[1];
 
-    if (!userId) {
+    if (!user_id) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const db = connectDB;
+    const order = const db = connectDB; await dborder.findUnique({
+      where: { id: invoice_id },
+      include: {
+        items: { include: { product: { select: { id: true, seller_id: true } } } },
+        customer: { select: { user_id: true } },
+      },
+    });
 
-    // Get invoice details
-    const invoices = await db`
-      SELECT 
-        i.invoice_id,
-        i.customer_id,
-        i.status
-      FROM invoices i
-      WHERE i.invoice_id = ${orderId}
-    `;
-
-    if (invoices.length === 0) {
-      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+    if (!order) {
+      return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
     }
 
     const invoice = invoices[0];
 
     // Check permissions
     let allowed = false;
-    if (invoice.customer_id === userId) allowed = true;
+    if (order.customer.user_id === user_id) allowed = true;
 
-    // Check if user is a seller of any products in this invoice
-    const sellerProducts = await db`
-      SELECT DISTINCT p.seller_id
-      FROM invoices_details id
-      INNER JOIN products p ON id.product_id = p.product_id
-      WHERE id.invoice_id = ${orderId}
-    `;
+    const seller_ids = new Set(
+      order.items.map((it) => it.product?.seller_id).filter(Boolean) as string[]
+    );
+    if (seller_ids.has(user_id)) allowed = true;
 
-    const sellerIds = new Set(sellerProducts.map((sp) => sp.seller_id));
-    
-    // Check if user has a seller profile that matches any of the seller_ids
-    const userSellers = await db`
-      SELECT seller_id FROM sellers 
-      WHERE seller_name LIKE ${`%${userId}%`}
-    `;
-    
-    const userSellerIds = new Set(userSellers.map((us) => us.seller_id));
-    const hasMatchingSeller = [...sellerIds].some(sid => userSellerIds.has(sid));
-    
-    if (hasMatchingSeller) allowed = true;
-
-    // Check if user is admin
-    const users = await db`SELECT role FROM users WHERE user_id = ${userId}`;
-    if (users.length > 0 && users[0].role === "ADMIN") allowed = true;
+    const maybeUser = const db = connectDB; await dbuser.findUnique({ where: { id: user_id } });
+    if (maybeUser?.role === "ADMIN") allowed = true;
 
     if (!allowed) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const updated = await db`
-      UPDATE invoices 
-      SET status = 'PAID', update_dt = NOW()
-      WHERE invoice_id = ${orderId}
-      RETURNING *
-    `;
+    const updated = const db = connectDB; await dborder.update({
+      where: { id: invoice_id },
+      data: { status: "PAID" },
+    });
 
     return NextResponse.json({ ok: true, order: updated[0] });
   } catch (err) {
-    console.error("POST /api/orders/[orderId]/pay error:", err);
+    console.error("POST /api/invoices/[invoice_id]/pay error:", err);
     return NextResponse.json({ error: "Failed to mark order paid" }, { status: 500 });
   }
 }
