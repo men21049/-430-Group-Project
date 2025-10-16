@@ -7,7 +7,6 @@ import ProductCard from "@/app/shop/ProductCard";
 import Header from "@/app/ui/landing-page/header";
 
 import CallToAction from "@/app/ui/landing-page/cta-section";
-import WithAuth from "@/app/components/withAuth";
 
 function SellerProductsContent() {
   const router = useRouter();
@@ -113,7 +112,7 @@ function SellerProductsContent() {
                 id={product.id}
                 name={product.name}
                 price={product.price}
-                image={product.image || undefined}
+                image_path={product.image || undefined}
                 showAddToCart={false}
               >
                 <div className="flex gap-2 mt-2">
@@ -143,9 +142,5 @@ function SellerProductsContent() {
 }
 
 export default function SellerProductsPage() {
-  return (
-    <WithAuth role="SELLER">
-      <SellerProductsContent />
-    </WithAuth>
-  );
+  return <SellerProductsContent />;
 }

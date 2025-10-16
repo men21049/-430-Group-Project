@@ -34,10 +34,14 @@ export default function SignUpCustomerPage() {
     setMessage("");
 
     try {
-      const res = await fetch("/api/signup", {
+      const res = await fetch("/api/signup/customer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, role: "CUSTOMER" }),
+        body: JSON.stringify({ 
+          name: form.name, 
+          email: form.email, 
+          password: form.password 
+        }),
       });
 
       const data = await res.json();
@@ -45,14 +49,28 @@ export default function SignUpCustomerPage() {
       if (!res.ok) {
         setMessage(data.error || "Signup failed");
       } else {
-        // Save JWT and user info in cookies
-        Cookies.set("token", data.token, { expires: 1 });
-        Cookies.set("role", data.role);
-        if (data.userId) Cookies.set("userId", data.userId);
-        Cookies.set("name", data.name || form.name);
+        setMessage(data.message || "✅ Signup successful!");
 
-        setMessage("✅ Account created! Redirecting...");
-        router.push("/customer/dashboard");
+        // Handle redirection based on response
+        if (data.redirectTo === "/login") {
+          // Customer signup - redirect to success page
+          // Clear any existing cookies
+          Cookies.remove("token");
+          Cookies.remove("role");
+          Cookies.remove("userId");
+          Cookies.remove("name");
+          
+          // Redirect to success page
+          router.push("/signup/success");
+        } else if (data.token) {
+          // Auto-login (shouldn't happen for customers, but just in case)
+          Cookies.set("token", data.token, { expires: 1 });
+          if (data.user.role) Cookies.set("role", data.user.role);
+          if (data.user.id) Cookies.set("userId", data.user.id);
+          Cookies.set("name", data.user.name);
+
+          router.push("/customer/dashboard");
+        }
       }
     } catch (err) {
       console.error("Signup (customer) error:", err);

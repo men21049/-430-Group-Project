@@ -1,33 +1,54 @@
 // src/app/shop/seller/products/productlist.tsx
 import Image from "next/image";
 import Link from "next/link";
-import prisma from "@/prisma/client";
+import connectDB from "@/app/lib/database";
 import { getCurrentUser } from "@/lib/auth";
 import WithAuth from "@/app/components/withAuth";
 
 async function ProductsListContent() {
   const user = await getCurrentUser();
-  if (!user?.id)
+  if (!user?.userId)
     return <p className="text-red-600 text-center mt-8">Not authenticated.</p>;
 
   // Get the seller linked to this user
-  const seller = await prisma.seller.findUnique({
+  const seller = const db = connectDB; await dbseller.findUnique({
     where: { userId: user.id },
     include: { products: true },
   });
 
-  if (!seller)
+  // Get the seller linked to this user
+  const sellers = await db`
+    SELECT seller_id, seller_name 
+    FROM sellers 
+    WHERE seller_name LIKE ${`%${user.name}%`}
+  `;
+
+  if (sellers.length === 0)
     return (
       <p className="text-red-600 text-center mt-8">
         No seller profile found for your account.
       </p>
     );
 
+  const seller = sellers[0];
+
+  // Get products for this seller
+  const products = await db`
+    SELECT 
+      product_id as id,
+      product_name as name,
+      price,
+      image_path as image
+    FROM products
+    WHERE seller_id = ${seller.seller_id} AND isactive = true
+    ORDER BY insert_dt DESC
+  `;
+
   return (
     <div className="max-w-6xl mx-auto p-6">
       <div className="flex justify-between items-center mb-6">
         <h2 className="text-3xl font-bold">
-          Your Products ({seller.products.length})
+          Your Products ({products.length})
         </h2>
         <Link
           href="/shop/seller/products/add"
@@ -37,13 +58,13 @@ async function ProductsListContent() {
         </Link>
       </div>
 
-      {seller.products.length === 0 ? (
+      {products.length === 0 ? (
         <p className="text-gray-600 text-center mt-6">
-          You haven’t added any products yet.
+          You haven't added any products yet.
         </p>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {seller.products.map((product) => (
+          {products.map((product) => (
             <div
               key={product.id}
               className="border p-3 rounded-lg shadow-sm hover:shadow-md transition"

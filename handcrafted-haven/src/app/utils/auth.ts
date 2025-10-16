@@ -1,5 +1,5 @@
 // src/app/utils/auth.ts
-import prisma from "@/prisma/client";
+import connectDB from "@/app/lib/database";
 
 export async function getCurrentUser() {
   // Here, replace this with your actual authentication logic

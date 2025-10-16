@@ -1,4 +1,8 @@
+"use client";
+
 // src/app/account/page.tsx
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import WithAuth from "@/app/components/withAuth";
 import CustomerDashboard from "@/app/customer/dashboard/page";
 import SellerDashboard from "@/app/shop/seller/dashboard/page";
@@ -13,19 +17,36 @@ function AdminDashboard() {
   );
 }
 
-// Mock function to get current user
-// Replace this with your real auth fetching logic
-async function getCurrentUser() {
-  // Example: fetch("/api/auth/me").then(res => res.json())
-  return {
-    id: "123",
-    name: "John Doe",
-    role: "CUSTOMER", // "SELLER" or "ADMIN"
-  };
-}
+export default function AccountPageWrapper() {
+  const [user, setUser] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+  const router = useRouter();
 
-export default async function AccountPageWrapper() {
-  const user = await getCurrentUser();
+  useEffect(() => {
+    async function fetchUser() {
+      try {
+        const res = await fetch("/api/auth/me", {
+          credentials: "include",
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setUser(data.user || data.payload);
+        } else {
+          router.push("/login");
+        }
+      } catch (error) {
+        console.error("Error fetching user:", error);
+        router.push("/login");
+      } finally {
+        setLoading(false);
+      }
+    }
+    fetchUser();
+  }, [router]);
+
+  if (loading) {
+    return <p className="text-center py-20">Loading...</p>;
+  }
 
   if (!user) {
     return <p className="text-center py-20">Please log in to view your account.</p>;
@@ -48,13 +69,9 @@ export default async function AccountPageWrapper() {
       );
   }
 
-  return <div className="min-h-screen flex flex-col">{DashboardComponent}</div>;
-}
-
-export function Account() {
   return (
     <WithAuth>
-      <AccountPageWrapper />
+      <div className="min-h-screen flex flex-col">{DashboardComponent}</div>
     </WithAuth>
   );
 }

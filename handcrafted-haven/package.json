@@ -4,20 +4,16 @@
   "private": true,
   "scripts": {
     "dev": "next dev --turbopack",
-    "build": "next build --turbopack",
+    "build": "next build",
     "start": "next start",
-    "lint": "eslint",
-    "prisma:generate": "pnpm exec prisma generate --schema=src/prisma/schema.prisma",
-    "prisma:migrate": "pnpm exec prisma migrate dev --name dev_migration --schema=src/prisma/schema.prisma",
-    "prisma:studio": "pnpm exec prisma studio --schema=src/prisma/schema.prisma",
-    "prisma:reset": "pnpm exec prisma migrate reset --schema=src/prisma/schema.prisma"
+    "lint": "eslint"
   },
   "dependencies": {
     "@heroicons/react": "^2.2.0",
-    "@prisma/client": "^6.16.3",
     "@tailwindcss/forms": "^0.5.10",
     "bcrypt": "^6.0.0",
     "clsx": "^2.1.1",
+    "dotenv": "^17.2.3",
     "formidable": "^3.5.4",
     "fs-extra": "^11.3.2",
     "get-stream": "^9.0.1",
@@ -25,14 +21,16 @@
     "jsonwebtoken": "^9.0.2",
     "lucide-react": "^0.544.0",
     "next": "15.5.3",
-    "prisma": "^6.16.3",
+    "node-fetch": "^3.3.2",
     "postgres": "^3.4.7",
     "react": "19.1.0",
-    "react-dom": "19.1.0"
+    "react-dom": "19.1.0",
+    "vercel": "^48.3.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/postcss": "^4.1.13",
+    "@types/bcrypt": "^6.0.0",
     "@types/js-cookie": "^3.0.6",
     "@types/jsonwebtoken": "^9.0.10",
     "@types/node": "^20",
@@ -43,7 +41,6 @@
     "eslint": "^9",
     "eslint-config-next": "15.5.3",
     "postcss": "^8.5.6",
-    "prisma": "^6.16.3",
     "tailwindcss": "^4.1.13",
     "ts-node": "^10.9.2",
     "tsconfig-paths": "^4.2.0",

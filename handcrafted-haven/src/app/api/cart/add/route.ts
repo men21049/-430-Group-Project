@@ -1,9 +1,9 @@
 import { NextResponse } from "next/server";
-import prisma from "@/prisma/client";
+import connectDB from "@/app/lib/database";
 import { getCurrentUserFromHeaders, CurrentUserPayload } from "@/lib/auth";
 
 interface AddCartBody {
-  productId: string;
+  product_id: string;
   quantity?: number;
 }
 
@@ -11,7 +11,7 @@ export async function POST(request: Request) {
   try {
     // Parse user from headers/cookies
     const user: CurrentUserPayload | null = getCurrentUserFromHeaders(request.headers);
-    if (!user || !(user.userId || user.email)) {
+    if (!user || !(user.user_id || user.email)) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
@@ -23,48 +23,54 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid JSON body" }, { status: 400 });
     }
 
-    const productId = body?.productId?.trim() ?? "";
+    const product_id = body?.product_id?.trim() ?? "";
     const quantity = Math.max(1, Number(body?.quantity || 1));
 
-    if (!productId) {
-      return NextResponse.json({ error: "Missing productId in request body" }, { status: 400 });
+    if (!product_id) {
+      return NextResponse.json({ error: "Missing product_id in request body" }, { status: 400 });
     }
 
-    // Resolve userId from payload or email lookup
-    let uid = user.userId;
+    const db = connectDB;
+
+    // Resolve user_id from payload or email lookup
+    let uid = user.user_id;
     if (!uid && user.email) {
-      const dbUser = await prisma.user.findUnique({ where: { email: user.email } });
-      uid = dbUser?.id;
+      const dbUsers = await db`SELECT * FROM users WHERE email = ${user.email}`;
+      uid = dbUsers.length > 0 ? dbUsers[0].user_id : undefined;
     }
     if (!uid) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     // Verify product exists
-    const product = await prisma.product.findUnique({ where: { id: productId } });
-    if (!product) {
+    const products = await db`SELECT * FROM products WHERE user_id = ${product_id}`;
+    if (products.length === 0) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
+    const product = products[0];
 
     // Upsert cart item
-    const existing = await prisma.cartItem.findFirst({
-      where: { userId: uid, productId },
-    });
+    const existing = await db`
+      SELECT * FROM cart_items 
+      WHERE user_id = ${uid} AND product_id = ${product_id}
+    `;
 
     let cartItem;
-    if (existing) {
-      cartItem = await prisma.cartItem.update({
-        where: { id: existing.id },
-        data: { quantity: existing.quantity + quantity },
-      });
+    if (existing.length > 0) {
+      const updated = await db`
+        UPDATE cart_items 
+        SET quantity = ${existing[0].quantity + quantity}, update_dt = NOW()
+        WHERE user_id = ${existing[0].id}
+        RETURNING *
+      `;
+      cartItem = updated[0];
     } else {
-      cartItem = await prisma.cartItem.create({
-        data: {
-          userId: uid,
-          productId,
-          quantity,
-        },
-      });
+      const newItem = await db`
+        INSERT INTO cart_items (user_id, product_id, quantity, insert_dt, update_dt)
+        VALUES (${uid}, ${product_id}, ${quantity}, NOW(), NOW())
+        RETURNING *
+      `;
+      cartItem = newItem[0];
     }
 
     return NextResponse.json(
@@ -72,11 +78,11 @@ export async function POST(request: Request) {
         ok: true,
         item: {
           id: cartItem.id,
-          productId: cartItem.productId,
+          product_id: cartItem.product_id,
           quantity: cartItem.quantity,
-          name: product.name,
+          name: product.product_name,
           price: product.price,
-          image: product.image ?? null,
+          image: product.image_path ?? null,
         },
       },
       { status: 200 }

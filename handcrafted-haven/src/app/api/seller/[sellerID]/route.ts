@@ -2,9 +2,9 @@
 import { NextResponse } from "next/server";
 import { getSellerInfo } from "@/app/lib/data";
 
-export async function GET(_: Request, { params }: { params: { sellerID: string } }) {
+export async function GET(_: Request, { params }: { params: Promise<{ sellerID: string }> }) {
   try {
-    const { sellerID } = params;
+    const { sellerID } = await params;
     const seller = await getSellerInfo(sellerID);
     if (!seller) {
       return NextResponse.json({ error: "Seller not found" }, { status: 404 });

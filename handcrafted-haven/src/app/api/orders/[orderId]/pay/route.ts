@@ -1,57 +1,60 @@
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/prisma/client";
+import connectDB from "@/app/lib/database";
 
 export async function POST(
   req: NextRequest,
-  context: { params: Promise<{ orderId: string }> }
+  context: { params: Promise<{ invoice_id: string }> }
 ) {
   // await the params promise
-  const { orderId } = await context.params;
+  const { invoice_id } = await context.params;
 
   try {
     const cookie = req.headers.get("cookie") || "";
-    const match = cookie.match(/userId=([^;]+)/);
-    const userId = match?.[1];
+    const match = cookie.match(/user_id=([^;]+)/);
+    const user_id = match?.[1];
 
-    if (!userId) {
+    if (!user_id) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const order = await prisma.order.findUnique({
-      where: { id: orderId },
+    const order = const db = connectDB; await dborder.findUnique({
+      where: { id: invoice_id },
       include: {
-        items: { include: { product: { select: { id: true, sellerId: true } } } },
-        customer: { select: { userId: true } },
+        items: { include: { product: { select: { id: true, seller_id: true } } } },
+        customer: { select: { user_id: true } },
       },
     });
 
     if (!order) {
-      return NextResponse.json({ error: "Order not found" }, { status: 404 });
+      return NextResponse.json({ error: "Invoice not found" }, { status: 404 });
     }
 
+    const invoice = invoices[0];
+
+    // Check permissions
     let allowed = false;
-    if (order.customer.userId === userId) allowed = true;
+    if (order.customer.user_id === user_id) allowed = true;
 
-    const sellerIds = new Set(
-      order.items.map((it) => it.product?.sellerId).filter(Boolean) as string[]
+    const seller_ids = new Set(
+      order.items.map((it) => it.product?.seller_id).filter(Boolean) as string[]
     );
-    if (sellerIds.has(userId)) allowed = true;
+    if (seller_ids.has(user_id)) allowed = true;
 
-    const maybeUser = await prisma.user.findUnique({ where: { id: userId } });
+    const maybeUser = const db = connectDB; await dbuser.findUnique({ where: { id: user_id } });
     if (maybeUser?.role === "ADMIN") allowed = true;
 
     if (!allowed) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const updated = await prisma.order.update({
-      where: { id: orderId },
+    const updated = const db = connectDB; await dborder.update({
+      where: { id: invoice_id },
       data: { status: "PAID" },
     });
 
-    return NextResponse.json({ ok: true, order: updated });
+    return NextResponse.json({ ok: true, order: updated[0] });
   } catch (err) {
-    console.error("POST /api/orders/[orderId]/pay error:", err);
+    console.error("POST /api/invoices/[invoice_id]/pay error:", err);
     return NextResponse.json({ error: "Failed to mark order paid" }, { status: 500 });
   }
 }

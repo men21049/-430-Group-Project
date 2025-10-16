@@ -14,16 +14,22 @@ type Order = {
   customer: { name: string; email: string };
 };
 
-type Props = { params: { orderId: string } };
+type Props = { params: Promise<{ orderId: string }> };
 
 export default function OrderDetail({ params }: Props) {
-  const { orderId } = params;
+  const [orderId, setOrderId] = useState<string | null>(null);
+
+  useEffect(() => {
+    params.then(({ orderId }) => setOrderId(orderId));
+  }, [params]);
 
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    if (!orderId) return;
+    
     async function fetchOrder() {
       try {
         const res = await fetch(`/api/orders/${orderId}`);
@@ -82,6 +88,7 @@ export default function OrderDetail({ params }: Props) {
 
         <PayButton
           orderId={order.id}
+          status={order.status}
           after={() => setOrder({ ...order, status: 'PAID' })}
         />
       </div>

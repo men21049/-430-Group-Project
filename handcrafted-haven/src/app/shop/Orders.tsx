@@ -81,6 +81,7 @@ export default function Orders() {
 
               <PayButton
                 orderId={order.id}
+                status={order.status}
                 after={() => {
                   setOrders((prev) =>
                     prev.map((o) =>

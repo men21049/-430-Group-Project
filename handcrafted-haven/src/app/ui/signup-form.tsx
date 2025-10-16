@@ -25,10 +25,16 @@ export default function SignupForm({ role }: SignupProps) {
     setMessage("");
 
     try {
-      const res = await fetch("/api/signup", {
+      // Use specific endpoint based on role
+      const endpoint = role === "CUSTOMER" ? "/api/signup/customer" : "/api/signup/seller";
+      const body = role === "CUSTOMER" 
+        ? { name, email, password }
+        : { name, email, password, shopName, bio };
+
+      const res = await fetch(endpoint, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password, role, shopName, bio }),
+        body: JSON.stringify(body),
       });
 
       const data = await res.json();
@@ -36,17 +42,30 @@ export default function SignupForm({ role }: SignupProps) {
       if (!res.ok) {
         setMessage(data.error || "Signup failed");
       } else {
-        setMessage("✅ Signup successful! Logging in...");
+        setMessage(data.message || "✅ Signup successful!");
 
-        // ✅ Save cookies for auth and cart
-        if (data.token) Cookies.set("token", data.token, { expires: 1 });
-        if (data.role) Cookies.set("role", data.role);
-        if (data.userId) Cookies.set("userId", data.userId);
-        Cookies.set("name", name);
+        // Handle redirection based on response
+        if (data.redirectTo === "/login") {
+          // Customer signup - redirect to success page
+          // Clear any existing cookies
+          Cookies.remove("token");
+          Cookies.remove("role");
+          Cookies.remove("userId");
+          Cookies.remove("name");
+          
+          // Redirect to success page
+          router.push("/signup/success");
+        } else if (data.token) {
+          // Seller signup - auto-login
+          // Save cookies for auth and cart
+          Cookies.set("token", data.token, { expires: 1 });
+          if (data.user.role) Cookies.set("role", data.user.role);
+          if (data.user.id) Cookies.set("userId", data.user.id);
+          Cookies.set("name", data.user.name);
 
-        // Redirect based on role
-        if (role === "SELLER") router.push("/seller/dashboard");
-        else router.push("/customer/dashboard");
+          // Redirect to seller dashboard
+          router.push("/seller/dashboard");
+        }
       }
     } catch (err) {
       console.error("SignupForm error:", err);
