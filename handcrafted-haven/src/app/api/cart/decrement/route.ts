@@ -1,6 +1,6 @@
 // src/app/api/cart/decrement/route.ts
 import { NextResponse } from "next/server";
-import prisma from "@/prisma/client";
+import connectDB from "@/app/lib/database";
 import { getCurrentUserFromHeaders } from "@/lib/auth";
 
 export async function POST(request: Request) {
@@ -16,18 +16,22 @@ export async function POST(request: Request) {
 
     let uid: string | undefined = user.userId;
     if (!uid && user.email) {
-      const dbUser = await prisma.user.findUnique({ where: { email: user.email } });
-      uid = dbUser?.id;
+      const db = connectDB;
+      const dbUsers = await db`SELECT user_id FROM users WHERE email = ${user.email}`;
+      uid = dbUsers.length > 0 ? dbUsers[0].user_id : undefined;
     }
     if (!uid) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-    const cartItem = await prisma.cartItem.findUnique({ where: { id: cartItemId } });
-    if (!cartItem || cartItem.userId !== uid) return NextResponse.json({ error: "Cart item not found" }, { status: 404 });
+    const db = connectDB;
+    const cartItems = await db`SELECT * FROM cart_items WHERE cart_item_id = ${cartItemId}`;
+    if (cartItems.length === 0 || cartItems[0].user_id !== uid) return NextResponse.json({ error: "Cart item not found" }, { status: 404 });
 
-    await prisma.cartItem.update({
-      where: { id: cartItem.id },
-      data: { quantity: Math.max(1, cartItem.quantity - 1) },
-    });
+    const cartItem = cartItems[0];
+    await db`
+      UPDATE cart_items 
+      SET quantity = ${Math.max(1, cartItem.quantity - 1)}, update_dt = NOW()
+      WHERE cart_item_id = ${cartItemId}
+    `;
 
     return NextResponse.json({ success: true });
   } catch (err) {

@@ -1,6 +1,6 @@
 // src/app/api/cart/route.ts
 import { NextResponse } from "next/server";
-import prisma from "@/prisma/client";
+import connectDB from "@/app/lib/database";
 import { getCurrentUserFromHeaders } from "@/lib/auth";
 
 export async function GET(request: Request) {
@@ -10,25 +10,28 @@ export async function GET(request: Request) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
+    const db = connectDB;
     let uid: string | undefined = user.userId;
     if (!uid && user.email) {
-      const dbUser = await prisma.user.findUnique({ where: { email: user.email } });
-      uid = dbUser?.id;
+      const dbUsers = await db`SELECT user_id FROM users WHERE email = ${user.email}`;
+      uid = dbUsers.length > 0 ? dbUsers[0].user_id : undefined;
     }
     if (!uid) return NextResponse.json({ error: "User not found" }, { status: 404 });
 
-    const cartItems = await prisma.cartItem.findMany({
-      where: { userId: uid },
-      include: { product: true },
-    });
+    const cartItems = await db`
+      SELECT ci.*, p.product_name, p.price, p.image_path
+      FROM cart_items ci
+      LEFT JOIN products p ON ci.product_id = p.product_id
+      WHERE ci.user_id = ${uid}
+    `;
 
     const items = cartItems.map(ci => ({
-      id: ci.id,
-      productId: ci.productId,
-      name: ci.product?.name ?? "Unknown product",
-      price: ci.product?.price ?? 0,
+      id: ci.cart_item_id,
+      productId: ci.product_id,
+      name: ci.product_name ?? "Unknown product",
+      price: ci.price ?? 0,
       quantity: ci.quantity,
-      image: ci.product?.image ?? null,
+      image: ci.image_path ?? null,
     }));
 
     return NextResponse.json({ items });

@@ -2,9 +2,9 @@
 import { NextResponse } from "next/server";
 import { getAllSellerProducts } from "@/app/lib/data";
 
-export async function GET(_: Request, { params }: { params: { sellerID: string } }) {
+export async function GET(_: Request, { params }: { params: Promise<{ sellerID: string }> }) {
   try {
-    const { sellerID } = params;
+    const { sellerID } = await params;
     // Optional: if you want a query param for category, extract it:
     // const url = new URL(request.url); const category = url.searchParams.get('category') ?? undefined;
     const products = await getAllSellerProducts(sellerID);

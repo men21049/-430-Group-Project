@@ -1,5 +1,6 @@
 // src/lib/auth.ts
 import jwt from "jsonwebtoken";
+import { cookies } from "next/headers";
 
 const JWT_SECRET = process.env.JWT_SECRET || "your-secret-key";
 
@@ -115,4 +116,28 @@ export function isAdmin(user: CurrentUserPayload | null) {
 }
 export function isSellerOrAdmin(user: CurrentUserPayload | null) {
   return hasRole(user, ["SELLER", "ADMIN"]);
+}
+
+/**
+ * Server-side function to get current user from cookies (for server components)
+ * Note: This function should be called from server components only
+ */
+export async function getCurrentUser(): Promise<CurrentUserPayload | null> {
+  try {
+    const cookieStore = await cookies();
+    
+    // Get the token from cookies
+    const token = cookieStore.get('token')?.value;
+    
+    if (!token) {
+      return null;
+    }
+    
+    // Verify the JWT token
+    const payload = jwt.verify(token, JWT_SECRET) as CurrentUserPayload;
+    return normalizePayloadRole(payload);
+  } catch (err) {
+    console.debug("getCurrentUser error:", (err as Error).message);
+    return null;
+  }
 }

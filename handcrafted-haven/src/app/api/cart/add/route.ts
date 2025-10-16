@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import prisma from "@/prisma/client";
+import connectDB from "@/app/lib/database";
 import { getCurrentUserFromHeaders, CurrentUserPayload } from "@/lib/auth";
 
 interface AddCartBody {
@@ -33,50 +33,57 @@ export async function POST(request: Request) {
     // Resolve userId from payload or email lookup
     let uid = user.userId;
     if (!uid && user.email) {
-      const dbUser = await prisma.user.findUnique({ where: { email: user.email } });
-      uid = dbUser?.id;
+      const db = connectDB;
+      const dbUsers = await db`SELECT user_id FROM users WHERE email = ${user.email}`;
+      uid = dbUsers.length > 0 ? dbUsers[0].user_id : undefined;
     }
     if (!uid) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     // Verify product exists
-    const product = await prisma.product.findUnique({ where: { id: productId } });
-    if (!product) {
+    const db = connectDB;
+    const products = await db`SELECT * FROM products WHERE product_id = ${productId}`;
+    if (products.length === 0) {
       return NextResponse.json({ error: "Product not found" }, { status: 404 });
     }
+    const product = products[0];
 
     // Upsert cart item
-    const existing = await prisma.cartItem.findFirst({
-      where: { userId: uid, productId },
-    });
+    const existingItems = await db`
+      SELECT * FROM cart_items 
+      WHERE user_id = ${uid} AND product_id = ${productId}
+    `;
 
     let cartItem;
-    if (existing) {
-      cartItem = await prisma.cartItem.update({
-        where: { id: existing.id },
-        data: { quantity: existing.quantity + quantity },
-      });
+    if (existingItems.length > 0) {
+      const existing = existingItems[0];
+      const updatedItems = await db`
+        UPDATE cart_items 
+        SET quantity = ${existing.quantity + quantity}, update_dt = NOW()
+        WHERE cart_item_id = ${existing.cart_item_id}
+        RETURNING *
+      `;
+      cartItem = updatedItems[0];
     } else {
-      cartItem = await prisma.cartItem.create({
-        data: {
-          userId: uid,
-          productId,
-          quantity,
-        },
-      });
+      const newItems = await db`
+        INSERT INTO cart_items (user_id, product_id, quantity, insert_dt, update_dt)
+        VALUES (${uid}, ${productId}, ${quantity}, NOW(), NOW())
+        RETURNING *
+      `;
+      cartItem = newItems[0];
     }
 
     return NextResponse.json(
       {
         ok: true,
         item: {
-          id: cartItem.id,
-          productId: cartItem.productId,
+          id: cartItem.cart_item_id,
+          productId: cartItem.product_id,
           quantity: cartItem.quantity,
-          name: product.name,
+          name: product.product_name,
           price: product.price,
-          image: product.image ?? null,
+          image: product.image_path ?? null,
         },
       },
       { status: 200 }

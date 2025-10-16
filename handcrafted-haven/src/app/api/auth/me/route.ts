@@ -1,6 +1,7 @@
 // src/app/api/auth/me/route.ts
 import { NextResponse } from "next/server";
 import { getCurrentUserFromRequest } from "@/lib/auth";
+import connectDB from "@/app/lib/database";
 
 
 /**
@@ -15,10 +16,13 @@ export async function GET(req: Request) {
     }
 
     // optional: include DB user info (email, role, isAdmin) if you want
-    const user = await prisma.user.findUnique({
-      where: { id: payload.userId },
-      select: { id: true, name: true, email: true, role: true, isAdmin: true },
-    });
+    const db = connectDB;
+    const users = await db`
+      SELECT user_id as id, name, email, role 
+      FROM users 
+      WHERE user_id = ${payload.userId}
+    `;
+    const user = users.length > 0 ? users[0] : null;
 
     return NextResponse.json({
       ok: true,

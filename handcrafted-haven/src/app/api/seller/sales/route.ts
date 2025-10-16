@@ -1,5 +1,5 @@
 // src/app/api/seller/sales/route.ts
-import prisma from "@/prisma/client";
+import connectDB from "@/app/lib/database";
 import { NextResponse } from "next/server";
 
 export async function GET(req: Request) {
@@ -7,17 +7,25 @@ export async function GET(req: Request) {
     const sellerId = new URL(req.url).searchParams.get('sellerId');
     if (!sellerId) return NextResponse.json({ totalRevenue: 0, totalOrders: 0, perProduct: [] });
 
-    const items = await prisma.orderItem.findMany({
-      where: { product: { sellerId } },
-      include: { product: true },
-    });
+    const db = connectDB;
+    const items = await db`
+      SELECT 
+        id.product_id,
+        id.quantity,
+        id.price,
+        id.product_name,
+        p.seller_id
+      FROM invoices_details id
+      INNER JOIN products p ON id.product_id = p.product_id
+      WHERE p.seller_id = ${sellerId}
+    `;
 
     const totalRevenue = items.reduce((sum, i) => sum + i.price * i.quantity, 0);
     const perProductMap: Record<string, { productId: string; name: string; revenue: number; qty: number }> = {};
 
     items.forEach((i) => {
-      const pid = i.productId;
-      if (!perProductMap[pid]) perProductMap[pid] = { productId: pid, name: i.product.name, revenue: 0, qty: 0 };
+      const pid = i.product_id;
+      if (!perProductMap[pid]) perProductMap[pid] = { productId: pid, name: i.product_name, revenue: 0, qty: 0 };
       perProductMap[pid].revenue += i.price * i.quantity;
       perProductMap[pid].qty += i.quantity;
     });

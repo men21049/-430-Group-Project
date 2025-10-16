@@ -1,28 +1,44 @@
 // src/scripts/reset-users.mjs
-import prisma from "../prisma/client.js"; // <- points to src/prisma/client.ts compiled to JS
+import postgres from "postgres";
+import bcrypt from "bcrypt";
+
+const databaseUrl = process.env.DATABASE_URL;
+
+if (!databaseUrl) {
+  console.error("❌ DATABASE_URL no está definida en las variables de entorno");
+  process.exit(1);
+}
+
+const sql = postgres(databaseUrl, {
+  ssl: "require",
+  max: 20,
+  idle_timeout: 20,
+  connect_timeout: 10,
+});
 
 async function main() {
   console.log("Deleting all users...");
-  await prisma.user.deleteMany({});
+  await sql`DELETE FROM users`;
   console.log("All users deleted.");
 
   // Optionally, create a test user
-  const newUser = await prisma.user.create({
-    data: {
-      name: "Test Seller",
-      email: "seller@example.com",
-      password: "password123",
-      role: "SELLER",
-      sellerProfile: {
-        create: {
-          shopName: "Test Shop",
-          bio: "This is a test shop",
-        },
-      },
-    },
-  });
+  const hashedPassword = await bcrypt.hash("password123", 10);
+  
+  const newUser = await sql`
+    INSERT INTO users (name, email, password, role, insert_dt, update_dt)
+    VALUES ('Test Seller', 'seller@example.com', ${hashedPassword}, 'SELLER', NOW(), NOW())
+    RETURNING *
+  `;
 
-  console.log("Created new user + seller:", newUser);
+  // Create seller profile
+  const newSeller = await sql`
+    INSERT INTO sellers (seller_name, seller_type, isactive, insert_dt, update_dt)
+    VALUES ('Test Shop', 1, true, NOW(), NOW())
+    RETURNING *
+  `;
+
+  console.log("Created new user:", newUser[0]);
+  console.log("Created new seller:", newSeller[0]);
 }
 
 main()
@@ -31,5 +47,5 @@ main()
     process.exit(1);
   })
   .finally(async () => {
-    await prisma.$disconnect();
+    await sql.end();
   });

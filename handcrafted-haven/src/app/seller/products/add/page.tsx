@@ -12,6 +12,9 @@ function AddProductForm() {
 
   const [name, setName] = useState("");
   const [price, setPrice] = useState("");
+  const [cost, setCost] = useState("");
+  const [stock, setStock] = useState("");
+  const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
   const [image, setImage] = useState<File | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
@@ -32,7 +35,7 @@ function AddProductForm() {
     setServerError(null);
 
     if (!name || !price || !category || !image) {
-      alert("Please fill in all fields and choose an image.");
+      alert("Please fill in all required fields and choose an image.");
       return;
     }
 
@@ -42,6 +45,9 @@ function AddProductForm() {
       const formData = new FormData();
       formData.append("name", name);
       formData.append("price", price);
+      formData.append("cost", cost || "0");
+      formData.append("stock", stock || "0");
+      formData.append("description", description);
       formData.append("category", category);
       formData.append("image", image);
 
@@ -109,6 +115,29 @@ function AddProductForm() {
             className="border p-2 rounded"
             required
             step="0.01"
+          />
+          <input
+            type="number"
+            placeholder="Cost (optional)"
+            value={cost}
+            onChange={(e) => setCost(e.target.value)}
+            className="border p-2 rounded"
+            step="0.01"
+          />
+          <input
+            type="number"
+            placeholder="Stock (optional)"
+            value={stock}
+            onChange={(e) => setStock(e.target.value)}
+            className="border p-2 rounded"
+            min="0"
+          />
+          <textarea
+            placeholder="Description (optional)"
+            value={description}
+            onChange={(e) => setDescription(e.target.value)}
+            className="border p-2 rounded"
+            rows={3}
           />
           <input
             type="text"

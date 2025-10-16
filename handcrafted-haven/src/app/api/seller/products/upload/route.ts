@@ -2,7 +2,7 @@
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
-import prisma from "@/prisma/client";
+import connectDB from "@/app/lib/database";
 import fs from "fs/promises";
 import path from "path";
 import { getCurrentUserFromRequest, isSellerOrAdmin, isAdmin } from "@/lib/auth";
@@ -25,6 +25,7 @@ export async function POST(req: Request) {
     }
 
     const formData = await req.formData();
+    const db = connectDB;
 
     // Admin may pass sellerId in form data
     const explicitSellerId = String(formData.get("sellerId") || "").trim() || null;
@@ -32,47 +33,62 @@ export async function POST(req: Request) {
     const name = String(formData.get("name") || "");
     const price = String(formData.get("price") || "");
     const category = String(formData.get("category") || "");
+    const cost = String(formData.get("cost") || "0");
+    const stock = String(formData.get("stock") || "0");
+    const description = String(formData.get("description") || "");
     const imageFile = formData.get("image") as File | null;
 
-    if (!name || !price) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
+    if (!name || !price) return NextResponse.json({ error: "Missing required fields: name and price" }, { status: 400 });
 
     // Resolve seller ID to associate the product with
-    let targetSellerId: string | null = null;
+    let targetSellerId: number | null = null;
     if (isAdmin(user) && explicitSellerId) {
-      const s = await prisma.seller.findUnique({ where: { id: explicitSellerId } });
-      if (!s) return NextResponse.json({ error: "Specified seller not found" }, { status: 404 });
-      targetSellerId = s.id;
+      const sellers = await db`SELECT seller_id FROM sellers WHERE seller_id = ${explicitSellerId}`;
+      if (sellers.length === 0) return NextResponse.json({ error: "Specified seller not found" }, { status: 404 });
+      targetSellerId = sellers[0].seller_id;
     } else {
-      const seller = await prisma.seller.findUnique({ where: { userId: user.userId } });
-      if (!seller) return NextResponse.json({ error: "Seller not found" }, { status: 404 });
-      targetSellerId = seller.id;
+      // First try to find by user_id (new preferred method)
+      let sellers = await db`SELECT seller_id FROM sellers WHERE user_id = ${user.userId}`;
+      
+      // Fallback to name matching if no direct user_id link
+      if (sellers.length === 0 && user.name) {
+        sellers = await db`SELECT seller_id FROM sellers WHERE seller_name LIKE ${`%${user.name}%`}`;
+      }
+      
+      if (sellers.length === 0) return NextResponse.json({ error: "Seller not found" }, { status: 404 });
+      targetSellerId = sellers[0].seller_id;
     }
 
     // Save image file if present
     let imagePath: string | null = null;
     if (imageFile && imageFile.size > 0) {
       const buffer = Buffer.from(await imageFile.arrayBuffer());
-      const uploadDir = path.join(process.cwd(), "public", "artisans");
+      
+      // Use environment variable for upload directory or default to "uploads"
+      const uploadSubDir = process.env.UPLOAD_DIR || "uploads";
+      const uploadDir = path.join(process.cwd(), "public", uploadSubDir);
       await fs.mkdir(uploadDir, { recursive: true });
 
-      const safeName = imageFile.name.replace(/\s+/g, "-");
+      const safeName = imageFile.name.replace(/[^a-zA-Z0-9.-]/g, "-");
       const fileName = `${Date.now()}-${safeName}`;
       const filePath = path.join(uploadDir, fileName);
       await fs.writeFile(filePath, buffer);
-      imagePath = `/artisans/${fileName}`;
+      imagePath = `/${uploadSubDir}/${fileName}`;
     }
 
-    const product = await prisma.product.create({
-      data: {
-        name,
-        price: parseFloat(price),
-        category: category || null,
-        image: imagePath,
-        sellerId: targetSellerId,
-      },
-    });
+    const newProduct = await db`
+      INSERT INTO products (
+        product_name, price, cost, stock, description, category, image_path, seller_id, isactive, insert_dt, update_dt
+      )
+      VALUES (
+        ${name}, ${parseFloat(price)}, ${parseFloat(cost)}, ${parseInt(stock)}, 
+        ${description || ''}, ${category || null}, ${imagePath}, ${targetSellerId}, 
+        true, NOW(), NOW()
+      )
+      RETURNING *
+    `;
 
-    return NextResponse.json(product);
+    return NextResponse.json(newProduct[0]);
   } catch (err) {
     console.error("POST /api/seller/products/upload error:", err);
     return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });

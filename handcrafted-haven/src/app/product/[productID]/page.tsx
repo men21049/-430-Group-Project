@@ -7,16 +7,15 @@ import AddToCartButton from "@/app/ui/AddToCartButton";
 /*const prisma = new PrismaClient();*/
 
 interface ProductPageProps {
-  params: {
+  params: Promise<{
     productID: string;
-  };
+  }>;
 }
 
 export default async function ProductPage({ params }: ProductPageProps) {
     try {
         const resolvedParams = await params;
         const product = await getProductFromDB(resolvedParams.productID);
-        console.log(product);
 
         return (
           <div>

@@ -12,9 +12,11 @@ interface Product {
   id: string;
   name: string;
   price: number;
+  cost?: number | null;
+  stock?: number | null;
+  description?: string | null;
   category?: string | null;
   image?: string | null;
-  stock?: number | null;
 }
 
 function EditProductPage() {
@@ -29,8 +31,10 @@ function EditProductPage() {
 
   const [name, setName] = useState("");
   const [price, setPrice] = useState<number | "">("");
-  const [category, setCategory] = useState("");
+  const [cost, setCost] = useState<number | "">("");
   const [stock, setStock] = useState<number | "">("");
+  const [description, setDescription] = useState("");
+  const [category, setCategory] = useState("");
   const [image, setImage] = useState("");
 
   useEffect(() => {
@@ -53,8 +57,10 @@ function EditProductPage() {
         setProduct(data);
         setName(data.name);
         setPrice(data.price);
-        setCategory(data.category || "");
+        setCost(data.cost ?? 0);
         setStock(data.stock ?? 0);
+        setDescription(data.description || "");
+        setCategory(data.category || "");
         setImage(data.image || "");
       } catch (err: any) {
         console.error(err);
@@ -79,7 +85,7 @@ function EditProductPage() {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ name, price, category, stock, image }),
+        body: JSON.stringify({ name, price, cost, stock, description, category, image }),
       });
 
       if (res.status === 401) {
@@ -138,23 +144,46 @@ function EditProductPage() {
                 className="mt-1 p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"
               />
             </label>
+
+            <label className="flex flex-col text-gray-800">
+              Description
+              <textarea
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                className="mt-1 p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-400"
+                rows={3}
+              />
+            </label>
           </div>
         </section>
 
         {/* Pricing */}
         <section className="p-6 rounded-lg shadow-md bg-green-50 border-l-4 border-green-600 hover:shadow-lg transition">
           <h2 className="text-xl font-semibold mb-3 text-green-700">Pricing</h2>
-          <label className="flex flex-col text-gray-800">
-            Price <span className="text-red-500">*</span>
-            <input
-              type="number"
-              value={price}
-              onChange={(e) => setPrice(Number(e.target.value))}
-              className="mt-1 p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400"
-              min={0}
-              step={0.01}
-            />
-          </label>
+          <div className="flex flex-col gap-4">
+            <label className="flex flex-col text-gray-800">
+              Price <span className="text-red-500">*</span>
+              <input
+                type="number"
+                value={price}
+                onChange={(e) => setPrice(Number(e.target.value))}
+                className="mt-1 p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400"
+                min={0}
+                step={0.01}
+              />
+            </label>
+            <label className="flex flex-col text-gray-800">
+              Cost
+              <input
+                type="number"
+                value={cost}
+                onChange={(e) => setCost(Number(e.target.value))}
+                className="mt-1 p-3 border rounded-lg focus:outline-none focus:ring-2 focus:ring-green-400"
+                min={0}
+                step={0.01}
+              />
+            </label>
+          </div>
         </section>
 
         {/* Inventory */}

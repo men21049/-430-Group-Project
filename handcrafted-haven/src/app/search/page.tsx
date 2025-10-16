@@ -1,48 +1,36 @@
-"use client";
-
-import { useState, useEffect } from "react";
 import ProductCard from "@/app/ui/product-card";
 import Header from "@/app/ui/landing-page/header";
-import Footer from "@/app/ui/footer";
 import CallToAction from "@/app/ui/landing-page/cta-section";
+import { getProductsFromDB } from "@/app/lib/data";
 
-export default function SearchPage({
+export default async function SearchPage({
   searchParams,
 }: {
-  searchParams: { query?: string };
+  searchParams: Promise<{ query?: string }>;
 }) {
-  const [results, setResults] = useState<any[]>([]);
+  const resolvedSearchParams = await searchParams;
+  const query = resolvedSearchParams.query;
 
-  useEffect(() => {
-    async function fetchResults() {
-      if (searchParams.query) {
-        try {
-          const res = await fetch("/api/products");
-          if (!res.ok) throw new Error("Failed to fetch products");
-          const allProducts = await res.json();
-
-          const filtered = allProducts.filter(
-            (p: any) =>
-              p.name
-                .toLowerCase()
-                .includes(searchParams.query!.toLowerCase()) ||
-              (p.description &&
-                p.description
-                  .toLowerCase()
-                  .includes(searchParams.query!.toLowerCase()))
-          );
-
-          setResults(filtered);
-        } catch (err) {
-          console.error(err);
-          setResults([]);
-        }
-      } else {
-        setResults([]);
-      }
+  let results: any[] = [];
+  
+  if (query) {
+    try {
+      const allProducts = await getProductsFromDB();
+      results = allProducts.filter(
+        (p: any) =>
+          p.name
+            .toLowerCase()
+            .includes(query.toLowerCase()) ||
+          (p.description &&
+            p.description
+              .toLowerCase()
+              .includes(query.toLowerCase()))
+      );
+    } catch (err) {
+      console.error(err);
+      results = [];
     }
-    fetchResults();
-  }, [searchParams.query]);
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -50,7 +38,7 @@ export default function SearchPage({
 
       <main className="max-w-7xl mx-auto p-4 flex-1">
         <h1 className="text-2xl font-bold mb-4">
-          Search Results for "{searchParams.query}"
+          Search Results for "{query || ''}"
         </h1>
 
         {results.length > 0 ? (

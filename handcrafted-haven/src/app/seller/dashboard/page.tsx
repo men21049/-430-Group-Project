@@ -3,7 +3,6 @@
 
 import WithAuth from "@/app/components/withAuth";
 import Header from "@/app/ui/landing-page/header";
-import Footer from "@/app/ui/footer";
 import CallToAction from "@/app/ui/landing-page/cta-section";
 import { useRouter } from "next/navigation";
 import Link from "next/link";

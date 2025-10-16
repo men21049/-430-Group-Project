@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import prisma from "@/prisma/client";
+import connectDB from "@/app/lib/database";
 
 // GET /api/orders
 export async function GET(req: Request) {
@@ -13,58 +13,101 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const user = await prisma.user.findUnique({ where: { id: userId } });
-    if (!user) {
+    const db = connectDB;
+    const users = await db`SELECT * FROM users WHERE user_id = ${userId}`;
+    if (users.length === 0) {
       return NextResponse.json({ error: "User not found" }, { status: 401 });
     }
+    const user = users[0];
 
-    let orders;
+    let invoices;
 
     if (user.role === "ADMIN") {
-      // admin sees all orders
-      orders = await prisma.order.findMany({
-        include: {
-          items: { include: { product: true } },
-          customer: { select: { userId: true } },
-        },
-        orderBy: { createdAt: "desc" },
-      });
+      // admin sees all invoices
+      invoices = await db`
+        SELECT 
+          i.invoice_id as id,
+          i.customer_id,
+          i.total,
+          i.status,
+          i.insert_dt as created_at,
+          u.name as customer_name,
+          u.email as customer_email
+        FROM invoices i
+        LEFT JOIN users u ON i.customer_id = u.user_id
+        ORDER BY i.insert_dt DESC
+      `;
     } else if (user.role === "SELLER") {
-      // seller sees orders with their products
-      orders = await prisma.order.findMany({
-        where: { items: { some: { product: { sellerId: userId } } } },
-        include: {
-          items: { include: { product: true } },
-          customer: { select: { userId: true } },
-        },
-        orderBy: { createdAt: "desc" },
-      });
+      // seller sees invoices with their products
+      invoices = await db`
+        SELECT DISTINCT
+          i.invoice_id as id,
+          i.customer_id,
+          i.total,
+          i.status,
+          i.insert_dt as created_at,
+          u.name as customer_name,
+          u.email as customer_email
+        FROM invoices i
+        LEFT JOIN users u ON i.customer_id = u.user_id
+        INNER JOIN invoices_details id ON i.invoice_id = id.invoice_id
+        INNER JOIN products p ON id.product_id = p.product_id
+        WHERE p.seller_id = (
+          SELECT seller_id FROM sellers WHERE seller_name LIKE ${`%${user.name}%`}
+        )
+        ORDER BY i.insert_dt DESC
+      `;
     } else {
-      // customer sees only own orders
-      orders = await prisma.order.findMany({
-        where: { customer: { userId } },
-        include: {
-          items: { include: { product: true } },
-          customer: { select: { userId: true } },
-        },
-        orderBy: { createdAt: "desc" },
-      });
+      // customer sees only own invoices
+      invoices = await db`
+        SELECT 
+          i.invoice_id as id,
+          i.customer_id,
+          i.total,
+          i.status,
+          i.insert_dt as created_at,
+          u.name as customer_name,
+          u.email as customer_email
+        FROM invoices i
+        LEFT JOIN users u ON i.customer_id = u.user_id
+        WHERE i.customer_id = ${userId}
+        ORDER BY i.insert_dt DESC
+      `;
     }
 
-    const out = orders.map((o) => ({
-      id: o.id,
-      createdAt: o.createdAt,
-      total: o.total,
-      status: o.status,
-      items: o.items.map((it) => ({
-        id: it.id,
-        productId: it.productId,
-        name: it.product?.name ?? "Unknown",
-        quantity: it.quantity,
-        price: it.price,
-        sellerId: it.product?.sellerId ?? null,
-      })),
-    }));
+    // Get invoice details for each invoice
+    const out = [];
+    for (const invoice of invoices) {
+      const details = await db`
+        SELECT 
+          id.invoice_detail_id as id,
+          id.product_id,
+          id.quantity,
+          id.price,
+          id.product_name as name,
+          p.seller_id
+        FROM invoices_details id
+        LEFT JOIN products p ON id.product_id = p.product_id
+        WHERE id.invoice_id = ${invoice.id}
+      `;
+
+      out.push({
+        id: invoice.id,
+        createdAt: invoice.created_at,
+        total: invoice.total,
+        status: invoice.status,
+        customerName: invoice.customer_name,
+        customerEmail: invoice.customer_email,
+        items: details.map((it) => ({
+          id: it.id,
+          productId: it.product_id,
+          name: it.name ?? "Unknown",
+          quantity: it.quantity,
+          price: it.price,
+          sellerId: it.seller_id ?? null,
+        })),
+      });
+    }
 
     return NextResponse.json(out);
   } catch (error) {
@@ -73,7 +116,7 @@ export async function GET(req: Request) {
   }
 }
 
-// POST /api/orders remains unchanged
+// POST /api/orders - Create invoice
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -92,37 +135,45 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "No items in order" }, { status: 400 });
     }
 
-    const orderItemsData: { productId: string; quantity: number; price: number }[] = [];
+    const db = connectDB;
+    const invoiceDetailsData: { productId: string; quantity: number; price: number; productName: string; imagePath: string }[] = [];
     let total = 0;
 
     for (const it of items) {
-      const product = await prisma.product.findUnique({ where: { id: it.id } });
-      if (!product) {
+      const products = await db`SELECT * FROM products WHERE product_id = ${it.id}`;
+      if (products.length === 0) {
         return NextResponse.json({ error: `Product not found: ${it.id}` }, { status: 400 });
       }
+      const product = products[0];
       const price = product.price;
       const qty = Math.max(1, Math.floor(it.quantity || 1));
       total += price * qty;
-      orderItemsData.push({ productId: product.id, quantity: qty, price });
+      invoiceDetailsData.push({ 
+        productId: product.product_id, 
+        quantity: qty, 
+        price,
+        productName: product.product_name,
+        imagePath: product.image_path
+      });
     }
 
-    const order = await prisma.order.create({
-      data: {
-        customer: { connect: { id: customerId } },
-        total,
-        status: "COMPLETED",
-        items: {
-          create: orderItemsData.map((oi) => ({
-            product: { connect: { id: oi.productId } },
-            quantity: oi.quantity,
-            price: oi.price,
-          })),
-        },
-      },
-      include: { items: { include: { product: true } } },
-    });
+    // Create invoice
+    const newInvoices = await db`
+      INSERT INTO invoices (customer_id, total, status, insert_dt, update_dt)
+      VALUES (${customerId}, ${total}, 'COMPLETED', NOW(), NOW())
+      RETURNING *
+    `;
+    const invoice = newInvoices[0];
 
-    return NextResponse.json({ ok: true, orderId: order.id, order }, { status: 201 });
+    // Create invoice details
+    for (const detail of invoiceDetailsData) {
+      await db`
+        INSERT INTO invoices_details (invoice_id, product_id, quantity, price, product_name, image_path, insert_dt, update_dt)
+        VALUES (${invoice.invoice_id}, ${detail.productId}, ${detail.quantity}, ${detail.price}, ${detail.productName}, ${detail.imagePath}, NOW(), NOW())
+      `;
+    }
+
+    return NextResponse.json({ ok: true, orderId: invoice.invoice_id, invoice }, { status: 201 });
   } catch (error: any) {
     console.error("POST /api/orders error:", error);
     return NextResponse.json({ error: error?.message || "Failed to create order" }, { status: 500 });

@@ -1,6 +1,6 @@
 // src/app/api/orders/[orderId]/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import prisma from "@/prisma/client";
+import connectDB from "@/app/lib/database";
 
 export async function GET(
   req: NextRequest,
@@ -8,32 +8,54 @@ export async function GET(
 ) {
   try {
     const { orderId } = await context.params;
+    const db = connectDB;
 
-    const order = await prisma.order.findUnique({
-      where: { id: orderId },
-      include: {
-        items: { include: { product: { select: { id: true, name: true, price: true } } } },
-        customer: { select: { user: { select: { name: true, email: true } } } },
-      },
-    });
+    // Get invoice details (since we're using invoices table now)
+    const invoices = await db`
+      SELECT 
+        i.invoice_id as id,
+        i.customer_id,
+        i.total,
+        i.status,
+        i.insert_dt as created_at,
+        u.name as customer_name,
+        u.email as customer_email
+      FROM invoices i
+      LEFT JOIN users u ON i.customer_id = u.user_id
+      WHERE i.invoice_id = ${orderId}
+    `;
 
-    if (!order) {
+    if (invoices.length === 0) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
+    const invoice = invoices[0];
+
+    // Get invoice details (items)
+    const invoiceDetails = await db`
+      SELECT 
+        id.product_id,
+        id.quantity,
+        id.price,
+        id.product_name,
+        id.image_path
+      FROM invoices_details id
+      WHERE id.invoice_id = ${orderId}
+    `;
+
     const out = {
-      id: order.id,
-      createdAt: order.createdAt,
-      total: order.total,
-      status: order.status,
+      id: invoice.id,
+      createdAt: invoice.created_at,
+      total: invoice.total,
+      status: invoice.status,
       customer: {
-        name: order.customer.user?.name ?? "Customer",
-        email: order.customer.user?.email ?? "",
+        name: invoice.customer_name ?? "Customer",
+        email: invoice.customer_email ?? "",
       },
-      items: order.items.map((it) => ({
-        id: it.id,
-        productId: it.productId,
-        name: it.product?.name ?? "Unknown",
+      items: invoiceDetails.map((it) => ({
+        id: it.product_id,
+        productId: it.product_id,
+        name: it.product_name ?? "Unknown",
         quantity: it.quantity,
         price: it.price,
       })),

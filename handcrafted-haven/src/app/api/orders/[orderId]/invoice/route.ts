@@ -1,6 +1,6 @@
 // src/app/api/orders/[orderId]/invoice/route.ts
 import { NextResponse } from "next/server";
-import prisma from "@/prisma/client";
+import connectDB from "@/app/lib/database";
 
 export async function GET(
   req: Request,
@@ -9,39 +9,56 @@ export async function GET(
   try {
     // Await the params to get the orderId
     const { orderId } = await context.params;
+    const db = connectDB;
 
-    // Fetch order with customer info and items
-    const order = await prisma.order.findUnique({
-      where: { id: orderId },
-      include: {
-        customer: { select: { user: { select: { name: true, email: true } } } },
-        items: { include: { product: { select: { name: true } } } },
-      },
-    });
+    // Fetch invoice with customer info
+    const invoices = await db`
+      SELECT 
+        i.invoice_id,
+        i.total,
+        i.insert_dt as created_at,
+        u.name as customer_name,
+        u.email as customer_email
+      FROM invoices i
+      LEFT JOIN users u ON i.customer_id = u.user_id
+      WHERE i.invoice_id = ${orderId}
+    `;
 
-    if (!order) {
+    if (invoices.length === 0) {
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
+    const invoice = invoices[0];
+
+    // Fetch invoice details (items)
+    const invoiceDetails = await db`
+      SELECT 
+        id.product_name,
+        id.quantity,
+        id.price
+      FROM invoices_details id
+      WHERE id.invoice_id = ${orderId}
+    `;
+
     // Build invoice content
-    const customerName = order.customer.user?.name ?? "Customer";
-    const customerEmail = order.customer.user?.email ?? "";
+    const customerName = invoice.customer_name ?? "Customer";
+    const customerEmail = invoice.customer_email ?? "";
     let content = `HANDCRAFTED HAVEN INVOICE\n`;
-    content += `Order ID: ${order.id}\n`;
-    content += `Date: ${order.createdAt.toISOString()}\n\n`;
+    content += `Order ID: ${invoice.invoice_id}\n`;
+    content += `Date: ${invoice.created_at.toISOString()}\n\n`;
     content += `Bill To: ${customerName}\n`;
     if (customerEmail) content += `${customerEmail}\n`;
     content += `\nItems:\n`;
 
-    order.items.forEach((it, index) => {
-      const name = it.product?.name ?? "Item";
+    invoiceDetails.forEach((it, index) => {
+      const name = it.product_name ?? "Item";
       const qty = it.quantity;
       const unit = it.price.toFixed(2);
       const line = (it.price * it.quantity).toFixed(2);
       content += `${index + 1}. ${name} x${qty} @ $${unit} = $${line}\n`;
     });
 
-    content += `\nTOTAL: $${order.total.toFixed(2)}\n`;
+    content += `\nTOTAL: $${invoice.total.toFixed(2)}\n`;
     content += `\nThank you for your purchase!\n`;
 
     // Convert to Uint8Array
@@ -52,7 +69,7 @@ export async function GET(
       status: 200,
       headers: {
         "Content-Type": "text/plain",
-        "Content-Disposition": `attachment; filename=invoice-${order.id}.txt`,
+        "Content-Disposition": `attachment; filename=invoice-${invoice.invoice_id}.txt`,
       },
     });
   } catch (err) {
