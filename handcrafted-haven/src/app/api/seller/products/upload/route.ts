@@ -53,7 +53,7 @@ export async function POST(req: Request) {
     }
 
     // Save image file if present
-    let imagePath: string | null = null;
+    /*let imagePath: string | null = null;
     if (imageFile && imageFile.size > 0) {
       const buffer = Buffer.from(await imageFile.arrayBuffer());
       
@@ -67,17 +67,19 @@ export async function POST(req: Request) {
       const filePath = path.join(uploadDir, fileName);
       await fs.writeFile(filePath, buffer);
       imagePath = `/${uploadSubDir}/${fileName}`;
-    }
+    }*/
 
-    const product = const db = connectDB; await dbproduct.create({
-      data: {
-        name,
-        price: parseFloat(price),
-        category: category || null,
-        image: imagePath,
-        seller_id: targetSellerId,
-      },
-    });
+    const newProduct = await db`
+      INSERT INTO products (
+        product_name, price, cost, stock, description, category, image_path, seller_id, isactive, insert_dt, update_dt
+      )
+      VALUES (
+        ${name}, ${parseFloat(price)}, ${parseFloat(cost)}, ${parseInt(stock)}, 
+        ${description || ''}, ${category || null}, ${imageFile}, ${targetSellerId}, 
+        true, NOW(), NOW()
+      )
+      RETURNING *
+    `;
 
     return NextResponse.json(newProduct[0]);
   } catch (err) {

@@ -3,7 +3,6 @@ import CallToAction from "@/app/ui/landing-page/cta-section";
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import Cookies from "js-cookie";
 
     return(
         <div>

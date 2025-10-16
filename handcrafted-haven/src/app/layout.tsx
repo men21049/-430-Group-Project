@@ -67,10 +67,10 @@ function HeaderBar({ onOpenCart }: { onOpenCart: () => void }) {
         </div>
 
         <div className="flex items-center gap-3">
-          <CartButton
+          {/* <CartButton
             onClick={handleCartClick}
             disabled={isAuthenticated !== true}
-          />
+          /> */}
         </div>
       </div>
     </header>

@@ -16,25 +16,18 @@ function AddProductForm() {
   const [stock, setStock] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
-  const [image, setImage] = useState<File | null>(null);
+  const [image, setImage] = useState<string | null>(null);
   const [preview, setPreview] = useState<string | null>(null);
   const [status, setStatus] = useState<"idle" | "adding" | "success" | "error">(
     "idle"
   );
   const [serverError, setServerError] = useState<string | null>(null);
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files && e.target.files[0]) {
-      setImage(e.target.files[0]);
-      setPreview(URL.createObjectURL(e.target.files[0]));
-    }
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setServerError(null);
 
-    if (!name || !price || !category || !image) {
+    if (!name || !price || !category ) {
       alert("Please fill in all required fields and choose an image.");
       return;
     }
@@ -148,19 +141,12 @@ function AddProductForm() {
             required
           />
           <input
-            type="file"
-            accept="image/*"
-            onChange={handleImageChange}
+            type="text"
+            placeholder="Image"
+            onChange={(e) => setImage(e.target.value)}
             className="border p-2 rounded"
             required
           />
-          {preview && (
-            <img
-              src={preview}
-              alt="Preview"
-              className="w-40 h-40 object-cover rounded border"
-            />
-          )}
           {serverError && <p className="text-red-600 text-sm">{serverError}</p>}
           <button
             type="submit"
